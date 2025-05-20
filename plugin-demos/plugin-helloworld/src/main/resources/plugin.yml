@@ -1,0 +1,88 @@
+pluginId: "helloworld-plugin"
+name: "HelloWorld 插件"
+version: "1.0.0"
+mainClass: "com.xiaoqu.qteamos.plugin.helloworld.HelloWorldPlugin"
+author: "yangqijun"
+description: "简单的HelloWorld插件，用于测试和验证插件框架"
+type: "system"
+trust: "trusted"
+license: "Mulan PSL v2"
+priority: 10
+provider: "QTeamOS团队"
+website: "https://qteamos.com"
+category: "tools"
+main: "com.xiaoqu.qteamos.plugin.helloworld.HelloWorldPlugin"
+
+# 所需权限
+permissions:
+  - "file.read"
+  - "db.query"
+  - "spring.context"
+
+metadata:
+  controllers:
+    - com.xiaoqu.qteamos.plugin.helloworld.controller.HelloWorldController
+    - com.xiaoqu.qteamos.plugin.helloworld.controller.ViewDemoController
+
+    
+# 系统要求
+requiredSystemVersion: "1.0.0"
+
+# 依赖配置
+dependencies: {}
+
+# 生命周期方法映射
+lifecycle:
+  init: "init"
+  start: "start"
+  stop: "stop"
+  unload: "uninstall"
+
+# 扩展点定义
+extensionPoints: []
+
+# 资源定义
+resources:
+  - path: "static/js"
+    type: "script"
+  - path: "static/css"
+    type: "style"
+
+# 插件配置
+config:
+  greeting: "你好，QTeamOS世界！"
+  enableDebug: false
+  authTimeout: 3600
+  language: "zh_CN"
+  
+  # 扩展设置
+  enableExperimental: false
+  messageThreads: 5
+  
+  # 缓存配置
+  cache:
+    ttl: 30
+    allowClearAll: false
+  
+  # 安全设置
+  security:
+    allowAnonymous: true
+    accessLevel: "medium"
+    enableAuditLog: true
+    auditOperations: "all"
+
+# 健康检查
+healthCheck:
+  url: "/health/check"
+  timeout: 3000
+
+# 升级配置
+update:
+  previousVersion: null      # 上一个版本
+  targetVersion: "1.0.0"     # 目标版本
+  databaseChange: true       # 是否包含数据库变更
+  migrationScripts:          # 数据库迁移脚本列表
+    - "db/migration/V1__init_helloworld_tables.sql"
+  requiresGrayRelease: false # 是否需要灰度发布
+  breakingChanges: false     # 是否包含破坏性变更
+  rollbackSupported: true    # 是否支持回滚 

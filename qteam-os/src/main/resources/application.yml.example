@@ -1,0 +1,110 @@
+# QTeamOS 应用配置示例
+# 使用前请复制为 application.yml 并修改相关配置
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+  tomcat:
+    uri-encoding: UTF-8
+    threads:
+      max: 200
+      min-spare: 30
+
+# Spring配置
+spring:
+  application:
+    name: qteamos
+  
+  # 数据源配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/qteamos?useUnicode=true&characterEncoding=utf8&serverTimezone=GMT%2B8
+    username: qteamos
+    password: password
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+  
+  # Redis配置（集群模式下必须配置）
+  redis:
+    host: localhost
+    port: 6379
+    database: 0
+    timeout: 10000
+    password: 
+    # 集群配置（启用集群时取消注释）
+    #cluster:
+    #  nodes: 127.0.0.1:7001,127.0.0.1:7002,127.0.0.1:7003
+  
+  # 文件上传配置
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+# QTeamOS 特有配置
+qteamos:
+  # 部署模式配置
+  deployment:
+    # 部署模式：standalone-单机模式，cluster-集群模式
+    mode: standalone
+    # 节点ID配置（集群模式必须配置，且集群内不能重复）
+    node:
+      # 数据中心ID（0-31）
+      datacenter-id: 1
+      # 工作节点ID（0-31）
+      worker-id: 1
+  
+  # 插件配置
+  pluginInterface:
+    # 插件加载路径（相对于应用根目录）
+    base-dir: plugins
+    # 临时目录
+    temp-dir: temp
+    # 是否开启热部署
+    hot-deployment: true
+    # 插件扫描间隔（秒）
+    scan-interval: 30
+    # 预加载系统插件
+    preload-system-plugins: true
+    # 插件隔离级别：CLASS, RESOURCE, FULL
+    isolation-level: RESOURCE
+  
+  # 数据库方言类型（mysql, postgresql, oracle, sqlserver等）
+  # 用于自动生成正确的SQL
+  db-dialect: mysql
+  
+  # 安全配置
+  security:
+    # 安全配置文件位置
+    config-location: classpath:config/security-rules.yml
+    # 密钥保存位置
+    keystore-path: classpath:config/keystore.jks
+    # 权限控制策略：permission, role, annotation
+    authorization-strategy: permission
+    # JWT配置
+    jwt:
+      # 秘钥
+      secret: qteamos-secret-key
+      # 过期时间（分钟）
+      expiration: 60
+    
+  # 缓存配置
+  cache:
+    # 缓存类型：memory, redis, mixed
+    type: memory
+    # 本地缓存大小限制
+    local-limit: 1000
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.xiaoqu.qteamos: DEBUG
+  file:
+    name: logs/qteamos.log 

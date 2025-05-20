@@ -1,0 +1,37 @@
+# 插件安全沙箱配置 - 开发环境示例
+
+plugin:
+  sandbox:
+    enabled: false   # 开发环境建议关闭沙箱，方便调试
+    class-isolation-enabled: true
+    resource-limit-enabled: false
+    permission-check-enabled: false
+    signature-verification-enabled: false
+    
+    # 资源限制较宽松，主要用于功能验证
+    default-memory-limit: 1024   # MB
+    default-cpu-limit: 80        # 百分比
+    default-storage-limit: 500   # MB
+    default-thread-limit: 30     # 线程数
+    
+    # 允许访问所有本地资源
+    blocked-packages: []
+    
+    # 允许访问的网络主机不做限制
+    allowed-hosts:
+      - "*"
+      
+    # 插件特定配置
+    plugins:
+      # 开发插件配置示例
+      "com.xiaoqu.dev-plugin":
+        resource-limits:
+          memory: 2048  # MB
+          cpu: 100      # 百分比
+          storage: 1000 # MB
+          threads: 50   # 线程数
+        permissions:
+          - "file.read"
+          - "file.write"
+          - "net.connect"
+          - "runtime.exec" 

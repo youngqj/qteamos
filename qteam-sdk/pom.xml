@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+   <project xmlns="http://maven.apache.org/POM/4.0.0"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+       <modelVersion>4.0.0</modelVersion>
+       
+       <parent>
+           <groupId>com.xiaoqu</groupId>
+           <artifactId>qteamos-parent</artifactId>
+           <version>0.0.1-SNAPSHOT</version>
+       </parent>
+       
+       <artifactId>qteamos-sdk</artifactId>
+       <packaging>jar</packaging>
+       <name>QTeamOS SDK</name>
+       <description>QTeamOS插件开发SDK</description>
+       
+       <dependencies>
+           <!-- 只包含SDK必要的依赖 -->
+           <dependency>
+               <groupId>org.projectlombok</groupId>
+               <artifactId>lombok</artifactId>
+               <scope>provided</scope>
+           </dependency>
+           <dependency>
+               <groupId>com.xiaoqu</groupId>
+               <artifactId>qteamos-api</artifactId>
+               <version>${project.version}</version>
+               <scope>provided</scope>
+           </dependency>
+
+           <dependency>
+               <groupId>com.xiaoqu</groupId>
+               <artifactId>qteamos-common</artifactId>
+               <version>${project.version}</version>
+               <scope>provided</scope>
+           </dependency>
+
+           <dependency>
+               <groupId>org.slf4j</groupId>
+               <artifactId>slf4j-api</artifactId>
+           </dependency>
+           
+           <!-- JDBC API已包含在JDK中，不需要额外引入 -->
+           <!-- 如果需要特定数据库的驱动，插件开发者可自行引入 -->
+           
+           <!-- JSON处理 -->
+           <dependency>
+               <groupId>com.google.code.gson</groupId>
+               <artifactId>gson</artifactId>
+               <version>2.10.1</version>
+           </dependency>
+           
+           <!-- YAML处理 -->
+           <dependency>
+               <groupId>org.yaml</groupId>
+               <artifactId>snakeyaml</artifactId>
+               <version>2.0</version>
+           </dependency>
+           
+           <!-- 测试依赖 -->
+           <dependency>
+               <groupId>org.junit.jupiter</groupId>
+               <artifactId>junit-jupiter-api</artifactId>
+               <scope>test</scope>
+           </dependency>
+           
+           <dependency>
+               <groupId>org.junit.jupiter</groupId>
+               <artifactId>junit-jupiter-engine</artifactId>
+               <scope>test</scope>
+           </dependency>
+
+            <!-- Jakarta Validation API -->
+            <dependency>
+                <groupId>jakarta.validation</groupId>
+                <artifactId>jakarta.validation-api</artifactId>
+                <version>${jakarta-validation.version}</version>
+            </dependency>
+       </dependencies>
+       
+       <build>
+           <plugins>
+               <plugin>
+                   <groupId>org.apache.maven.plugins</groupId>
+                   <artifactId>maven-compiler-plugin</artifactId>
+                   <configuration>
+                       <source>${java.version}</source>
+                       <target>${java.version}</target>
+                       <encoding>${project.build.sourceEncoding}</encoding>
+                   </configuration>
+               </plugin>
+               
+               <plugin>
+                   <groupId>org.apache.maven.plugins</groupId>
+                   <artifactId>maven-jar-plugin</artifactId>
+                   <configuration>
+                       <archive>
+                           <manifest>
+                               <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                           </manifest>
+                       </archive>
+                   </configuration>
+               </plugin>
+               
+               <!-- Javadoc 插件 -->
+               <plugin>
+                   <groupId>org.apache.maven.plugins</groupId>
+                   <artifactId>maven-javadoc-plugin</artifactId>
+                   <executions>
+                       <execution>
+                           <id>attach-javadocs</id>
+                           <goals>
+                               <goal>jar</goal>
+                           </goals>
+                       </execution>
+                   </executions>
+                   <configuration>
+                       <encoding>${project.build.sourceEncoding}</encoding>
+                       <charset>${project.build.sourceEncoding}</charset>
+                       <docencoding>${project.build.sourceEncoding}</docencoding>
+                       <doclint>none</doclint>
+                       <failOnError>false</failOnError>
+                       <additionalJOption>-Xdoclint:none</additionalJOption>
+                   </configuration>
+               </plugin>
+               
+               <!-- 源码打包插件 -->
+               <plugin>
+                   <groupId>org.apache.maven.plugins</groupId>
+                   <artifactId>maven-source-plugin</artifactId>
+                   <executions>
+                       <execution>
+                           <id>attach-sources</id>
+                           <goals>
+                               <goal>jar</goal>
+                           </goals>
+                       </execution>
+                   </executions>
+               </plugin>
+           </plugins>
+       </build>
+   </project>

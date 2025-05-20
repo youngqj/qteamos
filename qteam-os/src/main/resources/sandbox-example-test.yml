@@ -1,0 +1,67 @@
+# 插件安全沙箱配置 - 测试环境示例
+
+plugin:
+  sandbox:
+    enabled: true    # 测试环境打开沙箱
+    class-isolation-enabled: true
+    resource-limit-enabled: true
+    permission-check-enabled: true
+    signature-verification-enabled: false  # 测试环境可不验证签名
+    
+    # 资源限制适中
+    default-memory-limit: 512    # MB
+    default-cpu-limit: 70        # 百分比
+    default-storage-limit: 200   # MB
+    default-thread-limit: 20     # 线程数
+    
+    # 保护核心系统包
+    blocked-packages:
+      - "com.xiaoqu.qteamos.core.security"
+      - "com.xiaoqu.qteamos.core.plugin.security"
+      - "com.xiaoqu.qteamos.core.config"
+    
+    # 允许访问的网络主机
+    allowed-hosts:
+      - "localhost"
+      - "127.0.0.1"
+      - "api.xiaoqu.com"
+      - "test-api.xiaoqu.com"
+      - "cdn.xiaoqu.com"
+      
+    # 插件特定配置
+    plugins:
+      # 系统核心插件（高信任度）
+      "com.xiaoqu.system-plugin":
+        resource-limits:
+          memory: 1024     # MB
+          cpu: 80          # 百分比
+          storage: 500     # MB
+          threads: 30      # 线程数
+        permissions:
+          - "file.read"
+          - "file.write"
+          - "net.connect"
+          - "runtime.exec"
+      
+      # 一般业务插件（中等信任度）
+      "com.xiaoqu.business-plugin":
+        resource-limits:
+          memory: 256      # MB
+          cpu: 40          # 百分比
+          storage: 100     # MB
+          threads: 15      # 线程数
+        permissions:
+          - "file.read"
+          - "net.connect"
+      
+      # 第三方插件（低信任度）
+      "com.thirdparty.plugin":
+        resource-limits:
+          memory: 128      # MB
+          cpu: 20          # 百分比
+          storage: 50      # MB
+          threads: 5       # 线程数
+        permissions:
+          - "file.read"    # 仅允许读操作
+        allowed-hosts:     # 限制网络访问
+          - "api.thirdparty.com" 

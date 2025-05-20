@@ -1,0 +1,72 @@
+server:
+  port: 8082
+
+spring:
+  # 开发环境禁用数据源自动配置
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
+  # 数据库配置 - 开发环境禁用
+  datasource:
+      primary-name: systemDataSource
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/qelebasedb?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
+      username: xqadmin
+      password: Xiaoqu@123
+   #Redis配置 - 开发环境禁用
+  data:
+     redis:
+       host: 127.0.0.1
+       port: 6379
+       # password: yourpassword  # 如果有密码，取消注释
+       database: 0
+       lettuce:
+         pool:
+           max-active: 8
+           max-idle: 8
+           min-idle: 0
+           max-wait: -1ms
+       timeout: 5000ms
+       connect-timeout: 5000ms
+  # Spring Security配置 - 开发环境禁用
+  security:
+     user:
+       name: admin
+       password: 123456
+
+# MyBatis Plus配置
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.xiaoqu.qteamos.plugin.helloworld.model.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+  global-config:
+    db-config:
+      id-type: auto
+      table-prefix: plugin_helloworld_
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# 日志配置
+logging:
+  level:
+    root: info
+    com.xiaoqu.qteamos.plugin.helloworld: debug
+    com.xiaoqu.qteamos.plugin.helloworld.mapper: debug  # 添加Mapper日志，便于调试SQL
+
+# 插件特定配置
+plugin:
+  helloworld:
+    greeting: "Hello, QTeam Developer!"
+    debug: true
+    
+# 插件系统配置
+qteamos:
+  plugin:
+    enabled: true  # 开发环境启用插件系统
+    auto-scan: true  # 自动扫描控制器
+  gateway:
+    api-prefix: /api  # API前缀设置 

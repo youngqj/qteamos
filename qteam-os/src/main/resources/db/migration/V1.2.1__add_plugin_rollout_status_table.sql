@@ -1,0 +1,28 @@
+-- 插件灰度发布状态表
+CREATE TABLE IF NOT EXISTS `sys_plugin_rollout_status` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `plugin_id` varchar(100) NOT NULL COMMENT '插件唯一标识符',
+  `current_version` varchar(20) NOT NULL COMMENT '当前版本',
+  `target_version` varchar(20) NOT NULL COMMENT '目标版本',
+  `batch_size` int(11) NOT NULL DEFAULT 20 COMMENT '批次大小(百分比)',
+  `validate_time_minutes` int(11) NOT NULL DEFAULT 30 COMMENT '验证时间(分钟)',
+  `current_batch` int(11) NOT NULL DEFAULT 0 COMMENT '当前批次',
+  `current_percentage` int(11) NOT NULL DEFAULT 0 COMMENT '当前百分比',
+  `state` varchar(20) NOT NULL COMMENT '状态：INITIALIZED-初始化，IN_PROGRESS-进行中，PAUSED-暂停，COMPLETED-完成，FAILED-失败',
+  `message` varchar(255) DEFAULT NULL COMMENT '状态消息',
+  `start_time` datetime NOT NULL COMMENT '开始时间',
+  `last_batch_time` datetime DEFAULT NULL COMMENT '上次批次时间',
+  `completion_time` datetime DEFAULT NULL COMMENT '完成时间',
+  `metadata` text DEFAULT NULL COMMENT '元数据(JSON格式)',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `create_by` varchar(64) DEFAULT NULL COMMENT '创建者',
+  `update_by` varchar(64) DEFAULT NULL COMMENT '更新者',
+  `deleted` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否删除',
+  `version_num` int(11) DEFAULT '0' COMMENT '乐观锁版本号',
+  PRIMARY KEY (`id`),
+  KEY `idx_plugin_id` (`plugin_id`),
+  KEY `idx_state` (`state`),
+  KEY `idx_start_time` (`start_time`),
+  KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='插件灰度发布状态表'; 

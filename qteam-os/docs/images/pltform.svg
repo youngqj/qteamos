@@ -1,0 +1,177 @@
+<svg width="800" height="1200" xmlns="http://www.w3.org/2000/svg">
+  <!-- 标题 -->
+  <text x="400" y="30" font-family="Arial" font-size="20" text-anchor="middle" font-weight="bold">QTeamOS系统初始化机制架构图</text>
+  
+  <!-- 图例 -->
+  <rect x="600" y="50" width="20" height="15" fill="#90EE90" stroke="#000" />
+  <text x="625" y="62" font-family="Arial" font-size="12">已完成开发</text>
+  <rect x="600" y="75" width="20" height="15" fill="#ADD8E6" stroke="#000" />
+  <text x="625" y="87" font-family="Arial" font-size="12">需要新开发</text>
+
+  <!-- 系统初始化编排器(新增) -->
+  <rect x="100" y="100" width="600" height="180" fill="#ADD8E6" stroke="#000" rx="5" ry="5" />
+  <text x="400" y="120" font-family="Arial" font-size="16" text-anchor="middle" font-weight="bold">系统初始化编排器 (新开发)</text>
+  
+  <!-- 编排器内部组件 -->
+  <rect x="120" y="140" width="170" height="40" fill="#ADD8E6" stroke="#000" rx="3" ry="3" />
+  <text x="205" y="165" font-family="Arial" font-size="12" text-anchor="middle">依赖分析引擎</text>
+  
+  <rect x="310" y="140" width="170" height="40" fill="#ADD8E6" stroke="#000" rx="3" ry="3" />
+  <text x="395" y="165" font-family="Arial" font-size="12" text-anchor="middle">生命周期管理器</text>
+  
+  <rect x="500" y="140" width="170" height="40" fill="#ADD8E6" stroke="#000" rx="3" ry="3" />
+  <text x="585" y="165" font-family="Arial" font-size="12" text-anchor="middle">健康检查协调器</text>
+  
+  <rect x="120" y="200" width="170" height="40" fill="#ADD8E6" stroke="#000" rx="3" ry="3" />
+  <text x="205" y="225" font-family="Arial" font-size="12" text-anchor="middle">启动顺序优化器</text>
+  
+  <rect x="310" y="200" width="170" height="40" fill="#ADD8E6" stroke="#000" rx="3" ry="3" />
+  <text x="395" y="225" font-family="Arial" font-size="12" text-anchor="middle">并行初始化调度器</text>
+  
+  <rect x="500" y="200" width="170" height="40" fill="#ADD8E6" stroke="#000" rx="3" ry="3" />
+  <text x="585" y="225" font-family="Arial" font-size="12" text-anchor="middle">异常处理与恢复策略</text>
+  
+  <!-- 箭头连接 -->
+  <line x1="400" y1="280" x2="400" y2="300" stroke="#000" stroke-width="2" marker-end="url(#arrow)" />
+  
+  <!-- 组件注册表与事件总线(新增) -->
+  <rect x="100" y="300" width="600" height="140" fill="#ADD8E6" stroke="#000" rx="5" ry="5" />
+  <text x="400" y="320" font-family="Arial" font-size="16" text-anchor="middle" font-weight="bold">组件注册表与事件总线 (新开发)</text>
+  
+  <rect x="120" y="340" width="270" height="80" fill="#ADD8E6" stroke="#000" rx="3" ry="3" />
+  <text x="255" y="360" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold">组件注册中心</text>
+  <text x="255" y="380" font-family="Arial" font-size="12" text-anchor="middle">- 组件状态跟踪</text>
+  <text x="255" y="395" font-family="Arial" font-size="12" text-anchor="middle">- 依赖关系存储</text>
+  <text x="255" y="410" font-family="Arial" font-size="12" text-anchor="middle">- 初始化配置管理</text>
+  
+  <rect x="410" y="340" width="270" height="80" fill="#ADD8E6" stroke="#000" rx="3" ry="3" />
+  <text x="545" y="360" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold">系统事件总线</text>
+  <text x="545" y="380" font-family="Arial" font-size="12" text-anchor="middle">- 组件生命周期事件</text>
+  <text x="545" y="395" font-family="Arial" font-size="12" text-anchor="middle">- 跨组件通信</text>
+  <text x="545" y="410" font-family="Arial" font-size="12" text-anchor="middle">- 启动进度通知</text>
+  
+  <!-- 箭头连接 -->
+  <line x1="400" y1="440" x2="400" y2="460" stroke="#000" stroke-width="2" marker-end="url(#arrow)" />
+  
+  <!-- 分层初始化流程 -->
+  <rect x="100" y="460" width="600" height="40" fill="#000" stroke="#000" rx="5" ry="5" />
+  <text x="400" y="485" font-family="Arial" font-size="16" text-anchor="middle" font-weight="bold" fill="#fff">分层初始化流程</text>
+  
+  <!-- 箭头连接 -->
+  <line x1="400" y1="500" x2="400" y2="520" stroke="#000" stroke-width="2" />
+  <line x1="400" y1="520" x2="250" y2="520" stroke="#000" stroke-width="2" />
+  <line x1="400" y1="520" x2="550" y2="520" stroke="#000" stroke-width="2" />
+  <line x1="250" y1="520" x2="250" y2="540" stroke="#000" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="550" y1="520" x2="550" y2="540" stroke="#000" stroke-width="2" marker-end="url(#arrow)" />
+  
+  <!-- 核心层 -->
+  <rect x="100" y="540" width="300" height="120" fill="#90EE90" stroke="#000" rx="5" ry="5" />
+  <text x="250" y="560" font-family="Arial" font-size="16" text-anchor="middle" font-weight="bold">第1层: 核心层 (已完成)</text>
+  
+  <rect x="120" y="580" width="260" height="25" fill="#90EE90" stroke="#000" rx="3" ry="3" />
+  <text x="250" y="597" font-family="Arial" font-size="12" text-anchor="middle">配置加载服务</text>
+  
+  <rect x="120" y="610" width="260" height="25" fill="#90EE90" stroke="#000" rx="3" ry="3" />
+  <text x="250" y="627" font-family="Arial" font-size="12" text-anchor="middle">日志系统</text>
+  
+  <rect x="120" y="640" width="260" height="25" fill="#90EE90" stroke="#000" rx="3" ry="3" />
+  <text x="250" y="657" font-family="Arial" font-size="12" text-anchor="middle">错误处理服务</text>
+  
+  <!-- 生命周期流程 -->
+  <rect x="420" y="540" width="300" height="240" fill="#ADD8E6" stroke="#000" rx="5" ry="5" />
+  <text x="570" y="560" font-family="Arial" font-size="16" text-anchor="middle" font-weight="bold">初始化生命周期 (新开发)</text>
+  
+  <rect x="440" y="580" width="260" height="25" fill="#ADD8E6" stroke="#000" rx="3" ry="3" />
+  <text x="570" y="597" font-family="Arial" font-size="12" text-anchor="middle">注册</text>
+  <line x1="570" y1="605" x2="570" y2="615" stroke="#000" stroke-width="1" />
+  
+  <rect x="440" y="615" width="260" height="25" fill="#ADD8E6" stroke="#000" rx="3" ry="3" />
+  <text x="570" y="632" font-family="Arial" font-size="12" text-anchor="middle">初始化准备</text>
+  <line x1="570" y1="640" x2="570" y2="650" stroke="#000" stroke-width="1" />
+  
+  <rect x="440" y="650" width="260" height="25" fill="#ADD8E6" stroke="#000" rx="3" ry="3" />
+  <text x="570" y="667" font-family="Arial" font-size="12" text-anchor="middle">依赖验证</text>
+  <line x1="570" y1="675" x2="570" y2="685" stroke="#000" stroke-width="1" />
+  
+  <rect x="440" y="685" width="260" height="25" fill="#ADD8E6" stroke="#000" rx="3" ry="3" />
+  <text x="570" y="702" font-family="Arial" font-size="12" text-anchor="middle">初始化执行</text>
+  <line x1="570" y1="710" x2="570" y2="720" stroke="#000" stroke-width="1" />
+  
+  <rect x="440" y="720" width="260" height="25" fill="#ADD8E6" stroke="#000" rx="3" ry="3" />
+  <text x="570" y="737" font-family="Arial" font-size="12" text-anchor="middle">健康检查</text>
+  <line x1="570" y1="745" x2="570" y2="755" stroke="#000" stroke-width="1" />
+  
+  <rect x="440" y="755" width="260" height="25" fill="#ADD8E6" stroke="#000" rx="3" ry="3" />
+  <text x="570" y="772" font-family="Arial" font-size="12" text-anchor="middle">就绪通知</text>
+  
+  <!-- 箭头连接 -->
+  <line x1="250" y1="660" x2="250" y2="680" stroke="#000" stroke-width="2" marker-end="url(#arrow)" />
+  
+  <!-- 基础设施层 -->
+  <rect x="100" y="680" width="300" height="120" fill="#90EE90" stroke="#000" rx="5" ry="5" />
+  <text x="250" y="700" font-family="Arial" font-size="16" text-anchor="middle" font-weight="bold">第2层: 基础设施层 (已完成)</text>
+  
+  <rect x="120" y="720" width="260" height="25" fill="#90EE90" stroke="#000" rx="3" ry="3" />
+  <text x="250" y="737" font-family="Arial" font-size="12" text-anchor="middle">数据库服务</text>
+  
+  <rect x="120" y="750" width="260" height="25" fill="#90EE90" stroke="#000" rx="3" ry="3" />
+  <text x="250" y="767" font-family="Arial" font-size="12" text-anchor="middle">缓存服务</text>
+  
+  <rect x="120" y="780" width="260" height="25" fill="#90EE90" stroke="#000" rx="3" ry="3" />
+  <text x="250" y="797" font-family="Arial" font-size="12" text-anchor="middle">消息队列服务</text>
+  
+  <!-- 箭头连接 -->
+  <line x1="250" y1="800" x2="250" y2="820" stroke="#000" stroke-width="2" marker-end="url(#arrow)" />
+  
+  <!-- 功能服务层 -->
+  <rect x="100" y="820" width="300" height="120" fill="#90EE90" stroke="#000" rx="5" ry="5" />
+  <text x="250" y="840" font-family="Arial" font-size="16" text-anchor="middle" font-weight="bold">第3层: 功能服务层 (已完成)</text>
+  
+  <rect x="120" y="860" width="260" height="25" fill="#90EE90" stroke="#000" rx="3" ry="3" />
+  <text x="250" y="877" font-family="Arial" font-size="12" text-anchor="middle">安全服务</text>
+  
+  <rect x="120" y="890" width="260" height="25" fill="#90EE90" stroke="#000" rx="3" ry="3" />
+  <text x="250" y="907" font-family="Arial" font-size="12" text-anchor="middle">网关服务</text>
+  
+  <rect x="120" y="920" width="260" height="25" fill="#90EE90" stroke="#000" rx="3" ry="3" />
+  <text x="250" y="937" font-family="Arial" font-size="12" text-anchor="middle">监控服务</text>
+  
+  <!-- 箭头连接 -->
+  <line x1="250" y1="940" x2="250" y2="960" stroke="#000" stroke-width="2" marker-end="url(#arrow)" />
+  
+  <!-- 插件层 -->
+  <rect x="100" y="960" width="300" height="90" fill="#90EE90" stroke="#000" rx="5" ry="5" />
+  <text x="250" y="980" font-family="Arial" font-size="16" text-anchor="middle" font-weight="bold">第4层: 插件层 (已完成)</text>
+  
+  <rect x="120" y="1000" width="260" height="25" fill="#90EE90" stroke="#000" rx="3" ry="3" />
+  <text x="250" y="1017" font-family="Arial" font-size="12" text-anchor="middle">插件管理器</text>
+  
+  <rect x="120" y="1030" width="260" height="25" fill="#90EE90" stroke="#000" rx="3" ry="3" />
+  <text x="250" y="1047" font-family="Arial" font-size="12" text-anchor="middle">核心插件加载</text>
+  
+  <!-- 箭头连接 -->
+  <line x1="250" y1="1050" x2="250" y2="1070" stroke="#000" stroke-width="2" marker-end="url(#arrow)" />
+  
+  <!-- 应用层 -->
+  <rect x="100" y="1070" width="300" height="90" fill="#90EE90" stroke="#000" rx="5" ry="5" />
+  <text x="250" y="1090" font-family="Arial" font-size="16" text-anchor="middle" font-weight="bold">第5层: 应用层 (已完成)</text>
+  
+  <rect x="120" y="1110" width="260" height="25" fill="#90EE90" stroke="#000" rx="3" ry="3" />
+  <text x="250" y="1127" font-family="Arial" font-size="12" text-anchor="middle">业务服务初始化</text>
+  
+  <rect x="120" y="1140" width="260" height="25" fill="#90EE90" stroke="#000" rx="3" ry="3" />
+  <text x="250" y="1157" font-family="Arial" font-size="12" text-anchor="middle">用户界面</text>
+  
+  <!-- 添加箭头标记定义 -->
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#000" />
+    </marker>
+  </defs>
+  
+  <!-- 依赖关系箭头 -->
+  <!-- 为简化示意图，省略了详细的依赖关系箭头 -->
+  
+  <!-- 备注说明 -->
+  <text x="400" y="1180" font-family="Arial" font-size="14" text-anchor="middle" font-style="italic">绿色: 已完成开发的组件  蓝色: 需要新开发的组件</text>
+</svg>

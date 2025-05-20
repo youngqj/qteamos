@@ -1,0 +1,96 @@
+#!/bin/bash
+###
+ # @Author: yangqijun youngqj@126.com
+ # @Date: 2025-05-04 13:21:27
+ # @LastEditors: yangqijun youngqj@126.com
+ # @LastEditTime: 2025-05-04 13:22:43
+ # @FilePath: /QTeam/scripts/sbin/install-sdk-local.sh
+ # @Description: 
+ # 
+ # Copyright © Zhejiang Xiaoqu Information Technology Co., Ltd, All Rights Reserved. 
+### 
+#
+# 脚本名称: install-sdk-local.sh
+# 脚本功能: 生成将QTeamOS SDK安装到本地Maven仓库的命令
+# 作者: yangqijun@xiaoquio.com
+# 创建日期: $(date +"%Y-%m-%d")
+#
+
+# 颜色定义
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# 获取脚本所在目录
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+PROJECT_ROOT=$(cd "$SCRIPT_DIR/../.." && pwd)
+
+# SDK路径设置
+SDK_DIR="$PROJECT_ROOT/qteamos-sdk/target"
+POM_FILE="$PROJECT_ROOT/qteamos-sdk/pom.xml"
+
+# 检查SDK目录是否存在
+if [ ! -d "$SDK_DIR" ]; then
+  echo -e "${YELLOW}警告: SDK目标目录不存在 ($SDK_DIR)${NC}"
+  echo -e "${YELLOW}请先运行 'mvn package' 构建项目${NC}"
+  exit 1
+fi
+
+# 查找JAR文件(排除sources和javadoc的jar)
+SDK_JAR=$(ls "$SDK_DIR"/*.jar 2>/dev/null | grep -v "sources" | grep -v "javadoc" | head -1)
+
+if [ -z "$SDK_JAR" ]; then
+  echo -e "${YELLOW}未找到SDK JAR文件。请先构建SDK项目。${NC}"
+  echo -e "${YELLOW}运行: cd $PROJECT_ROOT && mvn clean package -pl qteamos-sdk${NC}"
+  exit 1
+fi
+
+# 从pom.xml提取信息
+if [ -f "$POM_FILE" ]; then
+  GROUP_ID=$(grep -m 1 "<groupId>" "$POM_FILE" | sed 's/.*<groupId>\(.*\)<\/groupId>.*/\1/')
+  ARTIFACT_ID=$(grep -m 1 "<artifactId>" "$POM_FILE" | sed 's/.*<artifactId>\(.*\)<\/artifactId>.*/\1/')
+  VERSION=$(grep -m 1 "<version>" "$POM_FILE" | sed 's/.*<version>\(.*\)<\/version>.*/\1/')
+  
+  # 如果没有在POM中找到groupId，查找父POM
+  if [ -z "$GROUP_ID" ]; then
+    PARENT_POM="$PROJECT_ROOT/pom.xml"
+    if [ -f "$PARENT_POM" ]; then
+      GROUP_ID=$(grep -m 1 "<groupId>" "$PARENT_POM" | sed 's/.*<groupId>\(.*\)<\/groupId>.*/\1/')
+    fi
+  fi
+else
+  echo -e "${YELLOW}警告: 未找到POM文件 ($POM_FILE)${NC}"
+  exit 1
+fi
+
+# 检查提取的信息
+if [ -z "$GROUP_ID" ] || [ -z "$ARTIFACT_ID" ] || [ -z "$VERSION" ]; then
+  echo -e "${YELLOW}无法从POM中提取完整的坐标信息${NC}"
+  echo -e "GroupID: $GROUP_ID"
+  echo -e "ArtifactID: $ARTIFACT_ID"
+  echo -e "Version: $VERSION"
+  exit 1
+fi
+
+# 输出Maven安装命令
+echo -e "${GREEN}=============== Maven安装命令 ===============${NC}"
+echo -e "${BLUE}将以下命令复制并执行，以安装SDK到本地Maven仓库:${NC}"
+echo
+echo -e "${GREEN}mvn install:install-file -Dfile=\"$SDK_JAR\" -DgroupId=$GROUP_ID -DartifactId=$ARTIFACT_ID -Dversion=$VERSION -Dpackaging=jar${NC}"
+echo
+echo -e "${GREEN}===========================================${NC}"
+
+# 提供直接安装选项
+read -p "是否直接执行安装命令? (y/n): " install_now
+if [[ "$install_now" =~ ^[Yy]$ ]]; then
+  echo -e "${BLUE}正在安装SDK到本地Maven仓库...${NC}"
+  mvn install:install-file -Dfile="$SDK_JAR" -DgroupId=$GROUP_ID -DartifactId=$ARTIFACT_ID -Dversion=$VERSION -Dpackaging=jar
+  if [ $? -eq 0 ]; then
+    echo -e "${GREEN}SDK安装成功!${NC}"
+  else
+    echo -e "${YELLOW}SDK安装失败，请检查错误信息${NC}"
+  fi
+else
+  echo -e "${BLUE}您可以稍后手动执行上述命令进行安装${NC}"
+fi

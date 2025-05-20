@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # QEleBase 应用服务
+  qelebase:
+    image: qelebase/server:latest
+    container_name: qelebase-server
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/qelebase?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+      - SPRING_DATASOURCE_USERNAME=qelebase
+      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+      - SPRING_REDIS_PASSWORD=password
+      - JAVA_OPTS=-Xms1G -Xmx2G -XX:+UseG1GC
+    volumes:
+      - ./data/qelebase/logs:/opt/qelebase/logs
+      - ./data/qelebase/plugins:/opt/qelebase/plugins
+      - ./data/qelebase/config:/opt/qelebase/config
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - qelebase-network
+
+  # MySQL 数据库服务
+  mysql:
+    image: mysql:8.0
+    container_name: qelebase-mysql
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=qelebase
+      - MYSQL_USER=qelebase
+      - MYSQL_PASSWORD=password
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    networks:
+      - qelebase-network
+
+  # Redis 缓存服务
+  redis:
+    image: redis:6.2
+    container_name: qelebase-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass password
+    volumes:
+      - ./data/redis:/data
+    networks:
+      - qelebase-network
+
+networks:
+  qelebase-network:
+    driver: bridge 

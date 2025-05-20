@@ -1,0 +1,335 @@
+server:
+  port: 8081
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: QTeamOS
+  # 允许Bean定义覆盖
+  main:
+    allow-bean-definition-overriding: true     
+  profiles:
+    active: dev
+
+
+  # 安全配置
+  security:
+    encryption:
+      key: "WGlhb3F1RW5jcnlwdGlvbjIwMjRLZXlGb3JBRVMyNTZBbGdvcml0aG1XaXRoQmFzZTY0RW5jb2RpbmdBbmRNb3JlQ29tcGxleGl0eUZvckJldHRlclNlY3VyaXQ="
+    jwt:
+      header: Authorization
+      token-start-with: Bearer
+      secret-key: "WGlhb3F1SldUMjAyNFNlY3VyaXR5S2V5Rm9ySE1BQzI1NkFsZ29yaXRobVdpdGhCYXNlNjQhQCNFbmNvZGluZ0FuZE1vcmVDb21wbGV4aXR5Rm9yQmV0dGVyU2VjdXJpdHk="
+      expiration: 86400000  # 24小时
+      refresh-token:
+        expiration: 604800000  # 7天
+
+# QTeamOS自定义配置
+qteamos:
+  # 系统版本
+  version: 1.0.0
+  
+  # 系统启动配置
+  system:
+    startup:
+      # 启动超时时间（毫秒），默认2分钟
+      timeout-millis: 120000
+      # 是否启用异步启动
+      async-startup: true
+      # 是否在启动时自动加载插件
+      auto-load-plugins: true
+      # 是否启用健康检查
+      health-check-enabled: true
+      # 是否输出详细的启动信息
+      verbose-logging: false
+      # 是否在发生启动错误时继续
+      continue-on-error: false
+      # Banner配置
+      banner:
+        enabled: true
+      # 核心服务启动顺序配置
+      core-services:
+        database-order: 1
+        cache-order: 2
+        security-order: 3
+        gateway-order: 4
+        plugin-system-order: 5
+  
+  # 网关层配置
+  gateway:
+    # API请求前缀，默认为/api pub 是公共的 其他是要认证的
+    api-prefix: /api   
+    # 添加HTML前缀配置
+    html-path-prefix: /html
+    # 添加静态文件前缀配置
+    static-path-prefix: /static
+    # 是否启用插件ID加密，默认为true
+    encrypt-plugin-id: true
+
+
+    # 是否启用网关功能，默认为true
+    enabled: true
+    # 是否记录API访问日志，默认为true
+    enable-request-logging: true
+    # 日志级别，可选值: BASIC, HEADERS, FULL，默认为BASIC
+    log-level: BASIC
+    # 是否启用API请求限流，默认为false
+    enable-rate-limit: false
+    # 每分钟最大请求数，默认为100
+    default-rate-limit: 100
+  
+  # 安全配置
+  security:
+    # 是否启用API访问控制，默认为true
+    enabled: false
+    # 是否启用CORS，默认为true
+    enable-cors: true
+    # CORS配置
+    cors:
+      # 允许的来源
+      allowed-origins: "*"
+      # 允许的方法
+      allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+      # 允许的头
+      allowed-headers: "*"
+      # 是否允许凭证
+      allow-credentials: true
+      # 最大缓存时间（秒）
+      max-age: 1800
+
+  # 时区设置
+  jackson:
+    time-zone: Asia/Shanghai
+    date-format: yyyy-MM-dd HH:mm:ss
+  # Gson配置
+  gson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    disable-html-escaping: true
+    serialize-nulls: true
+    pretty-printing: false
+  # 加密配置
+  # jasypt 已禁用，改用HuTool实现加密功能
+  jasypt:
+    encryptor:
+      # 禁用Jasypt，使用HuTool替代
+      enabled: false
+      # 以下配置已不再使用，保留仅作参考
+      # password: "Xiaoqu@Jasypt2024PasswordForConfigurationEncryption"
+      # algorithm: PBEWithMD5AndDES
+
+      
+  # 静态资源路径配置
+  web:
+    resources:
+      static-locations: classpath:/static/
+
+# 数据源配置
+spring.datasource:
+  type: com.alibaba.druid.pool.DruidDataSource
+  druid:
+    initial-size: 5
+    min-idle: 5
+    max-active: 20
+    max-wait: 60000
+    time-between-eviction-runs-millis: 60000
+    min-evictable-idle-time-millis: 300000
+    validation-query: SELECT 1
+    test-while-idle: true
+    test-on-borrow: false
+    test-on-return: false
+    pool-prepared-statements: true
+    max-pool-prepared-statement-per-connection-size: 20
+    filters: stat,wall
+    connection-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
+
+# MyBatis Plus配置
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.xiaoqu.qteamos.core.plugin.model.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# 插件系统配置
+plugin:
+  # 插件基础配置
+  storage-path: ./plugins
+  temp-dir: ./plugins-temp
+  
+  # 插件自动发现和扫描
+  auto-discover: true  # 是否开启自动发现插件功能
+  scan-interval: 60    # 扫描间隔（秒）
+  
+  # 加载与启动配置
+  load-timeout: 30000  # 插件加载超时时间（毫秒）
+  auto-start: true     # 自动启动插件
+  
+  # 类加载器配置
+  class-loading-strategy: PARENT_FIRST  # 类加载策略（PARENT_FIRST或PLUGIN_FIRST）
+  
+  # 监控与健康检查
+  health-check-interval: 60000  # 健康检查间隔（毫秒）
+  
+  # 插件安全配置
+  security:
+    # Spring Security相关配置
+    # 这些配置将替代硬编码在SecurityConfig中的配置
+    # 路径控制配置
+    paths:
+      # 允许匿名访问的路径
+      permit-all:
+        - "/assets/**"
+        - "/error"
+        - "${qteamos.gateway.api-prefix}${qteamos.gateway.public-path-prefix}/**"
+        - "${qteamos.gateway.api-prefix}/p-*/pub/**"
+        - "/api/auth/login"
+        - "/api/auth/register"
+        - "/public/**"
+        - "/api/test/**"
+        - "/nosec/**"
+      # 需要管理员角色的路径
+      admin-only:
+        - "${qteamos.gateway.api-prefix}${qteamos.gateway.admin-path-prefix}/**"
+      # 需要认证的路径
+      authenticated:
+        - "${qteamos.gateway.api-prefix}/**"
+    
+    # CSRF保护配置
+    csrf:
+      enabled: false
+      excluded-paths:
+        - "/api/**"
+    
+    # 会话管理配置
+    session:
+      creation-policy: STATELESS
+    
+    # 认证配置
+    authentication:
+      form-login: false
+      http-basic: false
+      jwt:
+        enabled: true
+        filter-order: 0
+        token-header: "Authorization"
+        token-prefix: "Bearer "
+        ignore-expired-token: false
+        request-matcher: "/api/**"
+    
+    # CORS配置
+    cors:
+      enabled: true
+      allow-credentials: true
+      allowed-headers: "*"
+      allowed-methods: "GET,POST,PUT,DELETE,OPTIONS"
+      allowed-origins: "*"
+      exposed-headers: "Authorization"
+      max-age: 1800
+    
+    # 其他安全配置项可以放在这里
+      
+  # 插件沙箱配置（直接放在plugin下）
+  sandbox:
+    # 是否启用安全沙箱
+    enabled: true
+    # 默认沙箱模式 (RESTRICTED, BASIC, PERMISSIVE)
+    default-mode: RESTRICTED
+    # 是否启用类隔离
+    class-isolation-enabled: true
+    # 是否启用资源限制
+    resource-limit-enabled: true
+    # 是否启用权限检查
+    permission-check-enabled: true
+    # 是否启用插件签名验证
+    signature-verification-enabled: false
+    # 默认资源限制
+    default-memory-limit: 256    # MB
+    default-cpu-limit: 50        # 百分比
+    default-storage-limit: 100   # MB
+    default-thread-limit: 10     # 线程数
+    # 黑名单包 - 插件不允许访问这些包
+    blocked-packages:
+      - "com.xiaoqu.qteamos.core.security"
+      - "com.xiaoqu.qteamos.core.plugin.security"
+      - "com.xiaoqu.qteamos.core.config"
+  
+  # 插件依赖管理配置
+  dependency:
+    # 增强版依赖解析器
+    enhanced-resolver:
+      enabled: true 
+    
+    # 依赖冲突解决策略 (NEWEST, OLDEST, NEAREST, HIGHEST_RANK)
+    resolution-strategy: NEWEST
+    
+    # 传递依赖处理
+    transitive:
+      enabled: true
+      max-depth: 10
+    
+    # 版本兼容性检查
+    version-check:
+      strict-mode: false
+      
+  # 插件生命周期配置
+  lifecycle:
+    # 热部署配置
+    hot-deploy:
+      enabled: true
+    
+    # 健康检查配置
+    health-check:
+      enabled: true
+      interval: 300  # 秒
+      timeout: 10    # 秒
+
+# 全局缓存配置
+cache:
+  type: REDIS
+  enabled: true
+  # 全局过期时间（秒），默认24小时，-1表示永不过期
+  default-expiration: 86400
+  # 缓存键前缀
+  key-prefix: "qteamos:"
+  
+  # 文件缓存配置
+  file:
+    # 缓存目录
+    directory: "${java.io.tmpdir}/qteamos-cache"
+    # 是否使用序列化存储
+    serialized: true
+    # 缓存清理周期（秒）
+    clean-interval: 3600
+  
+  # Redis缓存配置
+  redis:
+    enabled: true
+    host: localhost
+    port: 6379
+    password: 
+    database: 0
+    timeout: 2000
+  
+  # Caffeine缓存配置
+  caffeine:
+    # 初始容量
+    initial-capacity: 100
+    # 最大容量
+    maximum-size: 10000
+    # 是否记录统计信息
+    record-stats: false
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+

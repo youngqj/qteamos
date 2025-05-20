@@ -1,0 +1,23 @@
+[Unit]
+Description=QEleBase应用服务
+After=network.target mysql.service redis.service
+Wants=mysql.service redis.service
+
+[Service]
+Type=simple
+User=qelebase
+Group=qelebase
+WorkingDirectory=/opt/qelebase
+ExecStart=/bin/bash /opt/qelebase/start.sh
+ExecStop=/bin/bash /opt/qelebase/stop.sh
+Restart=on-failure
+RestartSec=30
+SuccessExitStatus=143
+TimeoutStopSec=120
+LimitNOFILE=65536
+
+Environment="JAVA_HOME=/usr/lib/jvm/java-17-openjdk"
+Environment="SPRING_PROFILES_ACTIVE=prod"
+
+[Install]
+WantedBy=multi-user.target 

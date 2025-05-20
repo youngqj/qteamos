@@ -1,0 +1,64 @@
+# 插件安全沙箱配置
+
+# 插件沙箱总开关，设为false则完全禁用沙箱功能
+plugin:
+  sandbox:
+    # 是否启用安全沙箱
+    enabled: true
+    
+    # 是否启用类隔离
+    class-isolation-enabled: true
+    
+    # 是否启用资源限制
+    resource-limit-enabled: true
+    
+    # 是否启用权限检查
+    permission-check-enabled: true
+    
+    # 是否启用插件签名验证
+    signature-verification-enabled: false
+    
+    # 默认资源限制
+    # 这些设置将应用于所有插件，除非在插件配置中特别指定
+    default-memory-limit: 256  # MB
+    default-cpu-limit: 50      # 百分比
+    default-storage-limit: 100 # MB
+    default-thread-limit: 10   # 线程数
+    
+    # 黑名单包 - 插件不允许访问这些包
+    blocked-packages:
+      - "com.xiaoqu.qteamos.core.security"
+      - "com.xiaoqu.qteamos.core.plugin.security"
+      - "com.xiaoqu.qteamos.core.config"
+      
+    # 白名单主机 - 插件默认允许访问的网络主机
+    allowed-hosts:
+      - "localhost"
+      - "127.0.0.1"
+      - "api.xiaoqu.com"
+      
+    # 插件特定配置
+    plugins:
+      # 系统插件配置
+      "com.xiaoqu.system-plugin":
+        resource-limits:
+          memory: 512  # MB
+          cpu: 80      # 百分比
+          storage: 200 # MB
+          threads: 20  # 线程数
+        permissions:
+          - "file.read"
+          - "file.write"
+          - "net.connect"
+          - "runtime.exec"
+          
+      # 普通插件配置 
+      "com.xiaoqu.normal-plugin":
+        resource-limits:
+          memory: 128  # MB
+          cpu: 30      # 百分比
+          storage: 50  # MB
+          threads: 5   # 线程数
+        permissions:
+          - "file.read"
+          - "net.connect" 

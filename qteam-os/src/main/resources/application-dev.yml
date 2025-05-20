@@ -1,0 +1,247 @@
+# 开发环境配置
+spring:
+  jmx:
+    enabled: false
+  # 数据源配置
+  datasource:
+    primary-name: systemDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/qteamosDB?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
+    username: root
+    password: 123456
+    # Druid连接池配置
+    druid:
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      max-wait: 60000
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      filter:
+        stat:
+          enabled: true
+          log-slow-sql: true
+          slow-sql-millis: 1000
+        wall:
+          enabled: true
+        slf4j:
+          enabled: true
+          
+  # 解决Bean定义和初始化问题
+  main:
+    allow-circular-references: true
+    allow-bean-definition-overriding: true
+    lazy-initialization: true
+    
+  # MongoDB配置
+  data:
+    mongodb:
+      enabled: false  # 开发环境禁用MongoDB
+
+# 开发环境下的QTeamOS自定义配置
+qteamos:
+  # 系统启动配置 - 开发环境
+  system:
+    startup:
+      verbose-logging: true  # 开发环境启用详细日志
+      continue-on-error: true  # 开发环境允许出错继续
+  
+  # 网关层配置 - 开发环境
+  gateway:
+    # 开发环境API日志记录更详细
+    log-level: FULL
+    # 开发环境启用限流，但限制更宽松
+    enable-rate-limit: true
+    default-rate-limit: 500
+    # 启用详细请求日志
+    enable-request-logging: true
+    # 开发环境禁用插件ID加密，便于调试
+    encrypt-plugin-id: true
+  
+  # 安全配置 - 开发环境
+  security:
+    # 开发环境可考虑禁用安全控制进行测试
+    enabled: true
+    encryption:
+      # AES加密密钥 - 生产环境必须更改此值!
+      # 密钥长度: 必须能生成128位(16字节)、192位(24字节)或256位(32字节)的密钥
+      # 注意: 在不同环境使用不同的密钥，并定期轮换
+      key: ${QTEAMOS_ENCRYPTION_KEY:OURNS0ngofJzQJqIbfwUJPHLa6MVvEuvUI7hbs+UUJpGno+8BzbT42mMPdI0Bs9C}
+
+      # 密钥长度 (256, 192, 或 128 位)
+      key-length: 256
+      
+    # CORS更宽松的配置
+    cors:
+      allowed-origins: "*"
+      allowed-methods: "*"
+      allowed-headers: "*"
+      allow-credentials: true
+      max-age: 3600
+
+# 多数据源配置
+datasource-multi:
+  # 启用多数据源
+  enabled: false
+  # 业务数据库
+  business:
+    url: jdbc:mysql://localhost:3306/qelebase_business?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
+    username: xqadmin
+    password: Xiaoqu@123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 可以为每个数据源单独设置连接池参数
+    druid:
+      initial-size: 3
+      min-idle: 3
+      max-active: 10
+      max-wait: 60000
+  # 日志数据库
+  log:
+    url: jdbc:mysql://localhost:3306/qelebase_log?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
+    username: xqadmin
+    password: Xiaoqu@123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    druid:
+      initial-size: 2
+      min-idle: 2
+      max-active: 5
+      max-wait: 60000
+
+# 开发环境日志配置
+logging:
+  level:
+    root: DEBUG
+    com.xiaoqu.qteamos: DEBUG
+    # 添加数据源相关日志，方便调试
+    com.xiaoqu.qteamos.core.plugin: DEBUG
+    # 添加网关和安全相关日志，方便调试
+    com.xiaoqu.qteamos.core.gateway: DEBUG
+    com.xiaoqu.qteamos.core.security: DEBUG
+  file:
+    name: logs/qteamos-dev.log
+
+# 开发环境插件配置
+plugin:
+  # 开发环境插件存储路径
+  storage-path: ./plugins-dev
+  # 开发环境插件临时目录
+  temp-dir: ./plugins-temp-dev
+  
+  # 插件加载与热部署
+  load-timeout: 60000  # 开发环境插件加载超时时间（毫秒，更长以方便调试）
+  
+  # 健康检查配置
+  health-check-interval: 30000  # 健康检查间隔（毫秒，更短以便于调试）
+  
+  # 插件安全配置
+  security:
+    # 其他安全配置项可以放在这里
+    
+    # Spring Security相关配置 - 开发环境
+    # 开发环境可能需要不同的安全设置
+    paths:
+      # 开发环境可以增加一些便于调试的路径
+      permit-all:
+        - "/swagger-ui/**"
+        - "/v3/api-docs/**"
+        - "/actuator/**"
+        - "/h2-console/**"
+        - "/assets/**"
+        - "/error"
+        - "${qteamos.gateway.api-prefix}${qteamos.gateway.public-path-prefix}/**"
+        - "${qteamos.gateway.api-prefix}/p-*/pub/**"
+        - "${qteamos.gateway.html-path-prefix}/p-*/**"  # 允许HTML路径
+    
+    # CSRF保护配置 - 开发环境通常禁用
+    csrf:
+      enabled: false
+    
+    # 认证配置 - 开发环境可提供更多灵活性
+    authentication:
+      form-login: false
+      http-basic: true  # 开发环境可启用HTTP Basic认证便于测试
+      jwt:
+        enabled: true
+        ignore-expired-token: true  # 开发环境可忽略令牌过期
+    
+    # CORS配置 - 开发环境通常更宽松
+    cors:
+      enabled: true
+      allowed-origins: "*"
+      allowed-methods: "*"
+      allowed-headers: "*"
+      max-age: 3600
+  
+  # 插件沙箱配置（开发环境）
+  sandbox:
+    # 开发环境可关闭沙箱便于调试
+    enabled: false
+    # 开发环境使用基本模式
+    default-mode: BASIC
+    # 是否启用类隔离
+    class-isolation-enabled: false
+    # 是否启用资源限制
+    resource-limit-enabled: false
+    # 是否启用权限检查
+    permission-check-enabled: false
+    # 是否启用插件签名验证
+    signature-verification-enabled: false
+    # 开发环境资源限制（更宽松）
+    default-memory-limit: 512    # MB
+    default-cpu-limit: 80        # 百分比
+    default-storage-limit: 200   # MB
+    default-thread-limit: 20     # 线程数
+  
+  # 插件生命周期配置
+  lifecycle:
+    # 热部署配置
+    hot-deploy:
+      enabled: true
+    
+    # 健康检查配置
+    health-check:
+      enabled: true
+      interval: 180  # 秒，开发环境更短
+      timeout: 30  # 秒，开发环境更长
+
+# 开发环境缓存配置
+cache:
+  # 缓存类型：FILE, REDIS, CAFFEINE
+  type: FILE  # 开发环境使用文件缓存，避免依赖Redis
+  # 是否启用
+  enabled: true
+  # 全局过期时间（秒），开发环境设置更短
+  default-expiration: 3600
+  # 缓存键前缀
+  key-prefix: "qteamos:dev:"
+  
+  # 文件缓存配置
+  file:
+    # 缓存目录，开发环境使用临时目录
+    directory: "${java.io.tmpdir}/qteamos-cache/dev"
+    # 是否使用序列化存储
+    serialized: true
+    # 缓存清理周期（秒）
+    clean-interval: 1800
+  
+  # Redis缓存配置（开发环境设置）
+  redis:
+    enabled: false  # 开发环境禁用Redis缓存
+    host: localhost
+    port: 6379
+    password: 
+    database: 0
+    timeout: 2000
+  
+  # Caffeine缓存配置（开发环境设置）
+  caffeine:
+    # 初始容量
+    initial-capacity: 100
+    # 最大容量
+    maximum-size: 5000
+    # 是否记录统计信息，开发环境开启便于调试
+    record-stats: true 

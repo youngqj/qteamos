@@ -1,0 +1,17 @@
+Manifest-Version: 1.0
+Created-By: QTeamOS Plugin System
+Build-Jdk-Spec: 17
+Plugin-Id: helloworld-plugin
+Plugin-Version: 1.0.0
+Plugin-Provider: com.xiaoqu.qteamos.plugin
+Plugin-Class: com.xiaoqu.qteamos.plugin.helloworld.HelloWorldPlugin
+Plugin-Name: HelloWorld Plugin
+Plugin-Description: A simple HelloWorld plugin for QTeamOS
+Plugin-License: Mulan PSL v2
+Plugin-API-Version: 1.0.0
+Plugin-SDK-Version: 1.0.0
+Plugin-Dependencies: 
+Plugin-Required-Services: DataSourceService
+Implementation-Title: QTeamOS HelloWorld Plugin
+Implementation-Version: 1.0.0
+Implementation-Vendor: XiaoQu Team 

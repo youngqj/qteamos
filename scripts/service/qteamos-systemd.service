@@ -1,0 +1,23 @@
+[Unit]
+Description=QTeamOS应用服务
+After=network.target mysql.service redis.service
+Wants=mysql.service redis.service
+
+[Service]
+Type=simple
+User=qteamos
+Group=qteamos
+WorkingDirectory=/opt/qteamos
+ExecStart=/bin/bash /opt/qteamos/start.sh
+ExecStop=/bin/bash /opt/qteamos/stop.sh
+Restart=on-failure
+RestartSec=30
+SuccessExitStatus=143
+TimeoutStopSec=120
+LimitNOFILE=65536
+
+Environment="JAVA_HOME=/usr/lib/jvm/java-17-openjdk"
+Environment="SPRING_PROFILES_ACTIVE=prod"
+
+[Install]
+WantedBy=multi-user.target 
