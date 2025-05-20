@@ -2,7 +2,7 @@ package com.xiaoqu.qteamos.core.plugin.monitoring;
 
 import com.xiaoqu.qteamos.core.plugin.error.PluginErrorHandler;
 import com.xiaoqu.qteamos.core.plugin.manager.PluginLifecycleManager;
-import com.xiaoqu.qteamos.core.plugin.manager.exception.PluginLifecycleException;
+import com.xiaoqu.qteamos.api.core.plugin.exception.PluginLifecycleException;
 import com.xiaoqu.qteamos.core.plugin.running.PluginInfo;
 import com.xiaoqu.qteamos.core.plugin.running.PluginState;
 import lombok.extern.slf4j.Slf4j;

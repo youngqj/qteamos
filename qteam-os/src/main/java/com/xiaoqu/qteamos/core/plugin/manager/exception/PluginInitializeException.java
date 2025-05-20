@@ -1,5 +1,7 @@
 package com.xiaoqu.qteamos.core.plugin.manager.exception;
 
+import com.xiaoqu.qteamos.api.core.plugin.exception.PluginLifecycleException;
+
 /**
  * 插件初始化异常
  * 在插件初始化过程中可能抛出
@@ -18,6 +20,6 @@ public class PluginInitializeException extends PluginLifecycleException {
     }
     
     public PluginInitializeException(Throwable cause) {
-        super(cause);
+        super("插件初始化失败", cause);
     }
 } 

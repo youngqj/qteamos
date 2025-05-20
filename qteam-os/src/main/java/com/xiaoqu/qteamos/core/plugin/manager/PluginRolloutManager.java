@@ -1,6 +1,6 @@
 package com.xiaoqu.qteamos.core.plugin.manager;
 
-import com.xiaoqu.qteamos.core.plugin.manager.exception.PluginLifecycleException;
+import com.xiaoqu.qteamos.api.core.plugin.exception.PluginLifecycleException;
 import com.xiaoqu.qteamos.core.plugin.model.entity.SysPluginVersion;
 import com.xiaoqu.qteamos.core.plugin.running.PluginDescriptor;
 import com.xiaoqu.qteamos.core.plugin.running.PluginInfo;

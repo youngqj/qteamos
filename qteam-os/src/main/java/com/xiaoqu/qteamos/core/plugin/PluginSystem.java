@@ -11,7 +11,7 @@ import com.xiaoqu.qteamos.core.plugin.manager.DependencyResolver;
 import com.xiaoqu.qteamos.core.plugin.manager.PluginLifecycleManager;
 import com.xiaoqu.qteamos.core.plugin.manager.PluginRegistry;
 import com.xiaoqu.qteamos.core.plugin.manager.PluginStateManager;
-import com.xiaoqu.qteamos.core.plugin.manager.exception.PluginLifecycleException;
+import com.xiaoqu.qteamos.api.core.plugin.exception.PluginLifecycleException;
 import com.xiaoqu.qteamos.core.plugin.manager.persistence.PluginStatePersistenceManager;
 import com.xiaoqu.qteamos.core.plugin.running.PluginDescriptor;
 import com.xiaoqu.qteamos.core.plugin.running.PluginInfo;
