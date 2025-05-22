@@ -1315,17 +1315,25 @@ public class PluginLifecycleManager {
         log.info("开始恢复插件状态...");
         try {
             List<String> pluginsToStart = persistenceService.restorePluginStatus();
+            int successCount = 0;
+            
             for (String pluginId : pluginsToStart) {
                 try {
-                    startPlugin(pluginId);
-                    log.info("成功恢复插件: {}", pluginId);
+                    boolean success = startPlugin(pluginId);
+                    if (success) {
+                        log.info("成功恢复插件: {}", pluginId);
+                        successCount++;
+                    } else {
+                        log.error("恢复插件状态失败: {}, 插件不存在或状态异常", pluginId);
+                    }
                 } catch (Exception e) {
-                    log.error("恢复插件状态失败: {}, 错误: {}", pluginId, e.getMessage());
+                    log.error("恢复插件状态失败: {}, 错误: {}", pluginId, e.getMessage(), e);
                 }
             }
-            log.info("插件状态恢复完成, 共恢复{}个插件", pluginsToStart.size());
+            
+            log.info("插件状态恢复完成, 共尝试恢复{}个插件, 成功{}个", pluginsToStart.size(), successCount);
         } catch (Exception e) {
-            log.error("恢复插件状态过程中发生错误: {}", e.getMessage());
+            log.error("恢复插件状态过程中发生错误: {}", e.getMessage(), e);
         }
     }
 
@@ -1416,7 +1424,7 @@ public class PluginLifecycleManager {
                 .descriptor(descriptor)
                 .state(PluginState.CREATED)
                 .jarPath(Paths.get(pluginFile.getAbsolutePath()))
-                .pluginFile(pluginFile)
+                .file(pluginFile)
                 .build();
             
             // 创建类加载器

@@ -68,6 +68,30 @@ public class HelloWorldController {
     }
     
     /**
+     * 健康检查接口，用于系统监控插件健康状态
+     * 
+     * @return 健康状态信息
+     */
+    @GetMapping(value = "/health")
+    public Map<String, Object> health() {
+        log.info("健康检查接口被调用");
+        
+        Map<String, Object> healthStatus = new HashMap<>();
+        healthStatus.put("healthy", true);
+        healthStatus.put("status", "UP");
+        healthStatus.put("version", "1.0.0");
+        healthStatus.put("timestamp", System.currentTimeMillis());
+        
+        // 添加一些模拟的资源信息
+        Map<String, Object> resources = new HashMap<>();
+        resources.put("memoryUsage", "10MB");
+        resources.put("threadCount", 2);
+        healthStatus.put("resources", resources);
+        
+        return healthStatus;
+    }
+    
+    /**
      * 保护接口，需要普通用户权限
      * 
      * @return 状态信息

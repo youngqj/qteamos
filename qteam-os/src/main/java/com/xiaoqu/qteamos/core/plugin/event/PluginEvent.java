@@ -3,14 +3,14 @@ package com.xiaoqu.qteamos.core.plugin.event;
 import java.util.List;
 
 /**
- * 插件事件基类
- * 提供插件相关事件的基本实现
+ * 插件事件
+ * 表示插件系统中的各种事件，如加载、启动、停止等
  *
  * @author yangqijun
- * @date 2024-07-03
+ * @date 2024-07-15
+ * @since 1.0.0
  */
-public class PluginEvent extends AbstractEvent {
-    
+public class PluginEvent extends Event {
     /**
      * 插件事件主题
      */
@@ -71,22 +71,22 @@ public class PluginEvent extends AbstractEvent {
      */
     public static final String TYPE_RECOVERED = "plugin.recovered";
     
+    /**
+     * 插件健康检查事件类型
+     */
+    public static final String TYPE_HEALTH_CHECK = "health_check";
+    
+    /**
+     * 插件恢复尝试事件类型
+     */
+    public static final String TYPE_RECOVERY = "recovery";
+    
     private final String pluginId;
     private final String version;
     private final Object data;
     
     /**
-     * 构造函数
-     *
-     * @param type 事件类型
-     * @param pluginId 插件ID
-     */
-    public PluginEvent(String type, String pluginId) {
-        this(type, pluginId, null, null);
-    }
-    
-    /**
-     * 构造函数
+     * 创建插件事件
      *
      * @param type 事件类型
      * @param pluginId 插件ID
@@ -97,15 +97,15 @@ public class PluginEvent extends AbstractEvent {
     }
     
     /**
-     * 构造函数
+     * 创建插件事件
      *
      * @param type 事件类型
      * @param pluginId 插件ID
      * @param version 插件版本
-     * @param data 事件附加数据
+     * @param data 事件数据
      */
     public PluginEvent(String type, String pluginId, String version, Object data) {
-        super(TOPIC, type, "system", false);
+        super("plugin", type, data);
         this.pluginId = pluginId;
         this.version = version;
         this.data = data;
@@ -156,12 +156,15 @@ public class PluginEvent extends AbstractEvent {
     @Override
     public String toString() {
         return "PluginEvent{" +
-                "topic='" + getTopic() + '\'' +
+                "eventId='" + getId() + '\'' +
+                ", topic='" + getTopic() + '\'' +
                 ", type='" + getType() + '\'' +
-                ", source='" + getSource() + '\'' +
                 ", pluginId='" + pluginId + '\'' +
                 ", version='" + version + '\'' +
                 ", timestamp=" + getTimestamp() +
+                ", source='" + (getSource() == this ? "system" : getSource()) + '\'' +
+                ", cancellable=" + isCancellable() +
+                ", cancelled=" + isCancelled() +
                 '}';
     }
     
@@ -286,5 +289,80 @@ public class PluginEvent extends AbstractEvent {
      */
     public static PluginEvent createRecoveredEvent(String pluginId, String version) {
         return new PluginEvent(TYPE_RECOVERED, pluginId, version);
+    }
+    
+    /**
+     * 创建插件健康检查事件
+     *
+     * @param pluginId 插件ID
+     * @param healthy 是否健康
+     * @param message 健康状态消息
+     * @return 插件事件
+     */
+    public static PluginEvent createHealthCheckEvent(String pluginId, boolean healthy, String message) {
+        return new PluginEvent(TYPE_HEALTH_CHECK, pluginId, null, 
+                new HealthCheckData(healthy, message));
+    }
+    
+    /**
+     * 创建插件恢复尝试事件
+     *
+     * @param pluginId 插件ID
+     * @param message 恢复消息
+     * @return 插件事件
+     */
+    public static PluginEvent createRecoveryEvent(String pluginId, String message) {
+        return new PluginEvent(TYPE_RECOVERY, pluginId, null, message);
+    }
+    
+    /**
+     * 创建插件健康恢复事件
+     *
+     * @param pluginId 插件ID
+     * @param message 恢复消息
+     * @return 插件事件
+     */
+    public static PluginEvent createHealthRecoveredEvent(String pluginId, String message) {
+        return new PluginEvent(TYPE_RECOVERED, pluginId, null, message);
+    }
+    
+    /**
+     * 创建插件健康失败事件
+     *
+     * @param pluginId 插件ID
+     * @param message 失败消息
+     * @return 插件事件
+     */
+    public static PluginEvent createHealthFailedEvent(String pluginId, String message) {
+        return new PluginEvent("health_failed", pluginId, null, message);
+    }
+    
+    /**
+     * 健康检查数据
+     */
+    public static class HealthCheckData {
+        private final boolean healthy;
+        private final String message;
+        
+        public HealthCheckData(boolean healthy, String message) {
+            this.healthy = healthy;
+            this.message = message;
+        }
+        
+        public boolean isHealthy() {
+            return healthy;
+        }
+        
+        public String getMessage() {
+            return message;
+        }
+        
+        @Override
+        public String toString() {
+            return "HealthCheckData{" +
+                    "healthy=" + healthy +
+                    ", message='" + message + '\'' +
+                    '}';
+        }
     }
 } 

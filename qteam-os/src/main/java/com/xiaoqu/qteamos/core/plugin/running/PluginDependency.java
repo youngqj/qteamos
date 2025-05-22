@@ -12,9 +12,9 @@ package com.xiaoqu.qteamos.core.plugin.running;
 
 import com.xiaoqu.qteamos.common.utils.VersionUtils;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.Builder;
 
 /**
  * 插件依赖
@@ -50,6 +50,60 @@ public class PluginDependency {
      * 如果为true，即使依赖不存在，插件也可以加载
      */
     private boolean optional;
+    
+    /**
+     * 获取依赖的插件ID
+     * 
+     * @return 插件ID
+     */
+    public String getPluginId() {
+        return pluginId;
+    }
+    
+    /**
+     * 设置依赖的插件ID
+     * 
+     * @param pluginId 插件ID
+     */
+    public void setPluginId(String pluginId) {
+        this.pluginId = pluginId;
+    }
+    
+    /**
+     * 获取版本要求
+     * 
+     * @return 版本要求
+     */
+    public String getVersionRequirement() {
+        return versionRequirement;
+    }
+    
+    /**
+     * 设置版本要求
+     * 
+     * @param versionRequirement 版本要求
+     */
+    public void setVersionRequirement(String versionRequirement) {
+        this.versionRequirement = versionRequirement;
+    }
+    
+    /**
+     * 是否为可选依赖
+     * 
+     * @return 是否可选
+     */
+    public boolean isOptional() {
+        return optional;
+    }
+    
+    /**
+     * 设置是否为可选依赖
+     * 
+     * @param optional 是否可选
+     */
+    public void setOptional(boolean optional) {
+        this.optional = optional;
+    }
     
     /**
      * 检查依赖是否有效
@@ -104,5 +158,41 @@ public class PluginDependency {
      */
     public String getVersion() {
         return versionRequirement;
+    }
+    
+    /**
+     * 创建一个PluginDependency构建器
+     *
+     * @return PluginDependencyBuilder实例
+     */
+    public static PluginDependencyBuilder builder() {
+        return new PluginDependencyBuilder();
+    }
+    
+    /**
+     * 插件依赖构建器
+     * 用于构建PluginDependency实例
+     */
+    public static class PluginDependencyBuilder {
+        private final PluginDependency dependency = new PluginDependency();
+        
+        public PluginDependencyBuilder pluginId(String pluginId) {
+            dependency.pluginId = pluginId;
+            return this;
+        }
+        
+        public PluginDependencyBuilder versionRequirement(String versionRequirement) {
+            dependency.versionRequirement = versionRequirement;
+            return this;
+        }
+        
+        public PluginDependencyBuilder optional(boolean optional) {
+            dependency.optional = optional;
+            return this;
+        }
+        
+        public PluginDependency build() {
+            return dependency;
+        }
     }
 } 

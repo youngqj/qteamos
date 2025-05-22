@@ -1,6 +1,10 @@
 package com.xiaoqu.qteamos.core.plugin.service;
 
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiaoqu.qteamos.core.plugin.model.entity.SysPluginInfo;
 import com.xiaoqu.qteamos.core.plugin.model.entity.SysPluginStatus;
@@ -16,17 +20,25 @@ import com.xiaoqu.qteamos.core.plugin.model.entity.SysPluginRolloutStatus;
 import com.xiaoqu.qteamos.core.plugin.model.entity.SysPluginUpdateHistory;
 import com.xiaoqu.qteamos.core.plugin.model.mapper.SysPluginRolloutStatusMapper;
 import com.xiaoqu.qteamos.core.plugin.model.mapper.SysPluginUpdateHistoryMapper;
+import com.xiaoqu.qteamos.core.plugin.model.entity.SysPluginConfig;
+import com.xiaoqu.qteamos.core.plugin.model.mapper.SysPluginConfigMapper;
+import com.xiaoqu.qteamos.core.config.PluginConfig;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.File;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -41,10 +53,10 @@ public class PluginPersistenceService {
     private static final Logger log = LoggerFactory.getLogger(PluginPersistenceService.class);
 
     @Autowired
-    private SysPluginInfoMapper pluginInfoMapper;
+    private SysPluginInfoService pluginInfoService;
 
     @Autowired
-    private SysPluginStatusMapper pluginStatusMapper;
+    private SysPluginStatusService pluginStatusService;
 
     @Autowired
     private SysPluginVersionMapper pluginVersionMapper;
@@ -57,6 +69,12 @@ public class PluginPersistenceService {
     
     @Autowired
     private SysPluginRolloutStatusMapper rolloutStatusMapper;
+    
+    @Autowired
+    private SysPluginConfigMapper configMapper;
+    
+    @Autowired
+    private PluginConfig pluginConfig;
 
     /**
      * 保存插件基本信息
@@ -65,39 +83,9 @@ public class PluginPersistenceService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void savePluginInfo(PluginInfo pluginInfo) {
-        PluginDescriptor descriptor = pluginInfo.getDescriptor();
-        
-        // 检查插件是否已存在
-        SysPluginInfo existingInfo = pluginInfoMapper.selectOne(
-                new LambdaQueryWrapper<SysPluginInfo>()
-                        .eq(SysPluginInfo::getPluginId, descriptor.getPluginId()));
-        
-        SysPluginInfo dbInfo = new SysPluginInfo();
-        if (existingInfo != null) {
-            dbInfo = existingInfo;
-        }
-        
-        // 设置插件基本信息
-        dbInfo.setPluginId(descriptor.getPluginId())
-                .setName(descriptor.getName())
-                .setVersion(descriptor.getVersion())
-                .setDescription(descriptor.getDescription())
-                .setAuthor(descriptor.getAuthor())
-                .setMainClass(descriptor.getMainClass())
-                .setType(descriptor.getType())
-                .setTrust(descriptor.getTrust())
-                .setRequiredSystemVersion(descriptor.getRequiredSystemVersion())
-                .setPriority(descriptor.getPriority());
-        
-        if (existingInfo != null) {
-            pluginInfoMapper.updateById(dbInfo);
-            log.info("更新插件基本信息: {}", descriptor.getPluginId());
-        } else {
-            pluginInfoMapper.insert(dbInfo);
-            log.info("保存插件基本信息: {}", descriptor.getPluginId());
-        }
+        pluginInfoService.savePluginInfo(pluginInfo);
     }
-    
+
     /**
      * 更新插件状态
      *
@@ -105,46 +93,17 @@ public class PluginPersistenceService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void updatePluginStatus(PluginInfo pluginInfo) {
-        String pluginId = pluginInfo.getPluginId();
-        String version = pluginInfo.getVersion();
-        PluginState state = pluginInfo.getState();
-        
-        // 检查状态记录是否存在
-        SysPluginStatus existingStatus = pluginStatusMapper.selectOne(
-                new LambdaQueryWrapper<SysPluginStatus>()
-                        .eq(SysPluginStatus::getPluginId, pluginId)
-                        .eq(SysPluginStatus::getVersion, version));
-        
-        SysPluginStatus dbStatus = new SysPluginStatus();
-        if (existingStatus != null) {
-            dbStatus = existingStatus;
-        }
-        
-        // 设置状态信息
-        dbStatus.setPluginId(pluginId)
-                .setVersion(version)
-                .setEnabled(pluginInfo.isEnabled())
-                .setStatus(state.name())
-                .setErrorMessage(pluginInfo.getErrorMessage());
-        
-        // 设置时间信息
-        if (pluginInfo.getLoadTime() != null) {
-            dbStatus.setInstalledTime(convertToLocalDateTime(pluginInfo.getLoadTime().getTime()));
-        }
-        if (pluginInfo.getStartTime() != null) {
-            dbStatus.setLastStartTime(convertToLocalDateTime(pluginInfo.getStartTime().getTime()));
-        }
-        if (pluginInfo.getStopTime() != null) {
-            dbStatus.setLastStopTime(convertToLocalDateTime(pluginInfo.getStopTime().getTime()));
-        }
-        
-        if (existingStatus != null) {
-            pluginStatusMapper.updateById(dbStatus);
-            log.info("更新插件状态: {} {}", pluginId, state);
-        } else {
-            pluginStatusMapper.insert(dbStatus);
-            log.info("保存插件状态: {} {}", pluginId, state);
-        }
+        pluginStatusService.updatePluginStatus(pluginInfo);
+    }
+
+    /**
+     * 恢复插件状态
+     * 系统重启后调用此方法恢复插件状态
+     *
+     * @return 需要启动的插件列表
+     */
+    public List<String> restorePluginStatus() {
+        return pluginStatusService.restorePluginStatus();
     }
     
     /**
@@ -229,31 +188,12 @@ public class PluginPersistenceService {
     }
     
     /**
-     * 恢复插件状态
-     * 系统重启后调用此方法恢复插件状态
-     *
-     * @return 需要启动的插件列表
-     */
-    public List<String> restorePluginStatus() {
-        // 查询所有启用状态的插件
-        List<SysPluginStatus> enabledPlugins = pluginStatusMapper.selectList(
-                new LambdaQueryWrapper<SysPluginStatus>()
-                        .eq(SysPluginStatus::getEnabled, true)
-                        .eq(SysPluginStatus::getStatus, PluginState.RUNNING.name()));
-        
-        // 返回需要重启的插件ID列表
-        return enabledPlugins.stream()
-                .map(SysPluginStatus::getPluginId)
-                .collect(Collectors.toList());
-    }
-    
-    /**
      * 获取所有已安装的插件信息
      *
      * @return 插件信息列表
      */
     public List<SysPluginInfo> getAllInstalledPlugins() {
-        return pluginInfoMapper.selectList(null);
+        return pluginInfoService.getAllInstalledPlugins();
     }
     
     /**
@@ -263,11 +203,7 @@ public class PluginPersistenceService {
      * @return 插件状态
      */
     public SysPluginStatus getPluginStatus(String pluginId) {
-        return pluginStatusMapper.selectOne(
-                new LambdaQueryWrapper<SysPluginStatus>()
-                        .eq(SysPluginStatus::getPluginId, pluginId)
-                        .orderByDesc(SysPluginStatus::getLastStartTime)
-                        .last("LIMIT 1"));
+        return pluginStatusService.getPluginStatus(pluginId);
     }
     
     /**
@@ -304,7 +240,6 @@ public class PluginPersistenceService {
                 new LambdaQueryWrapper<SysPluginVersion>()
                         .eq(SysPluginVersion::getPluginId, pluginId)
                         .eq(SysPluginVersion::getVersion, version));
-        
         return Optional.ofNullable(versionRecord);
     }
     
@@ -528,5 +463,60 @@ public class PluginPersistenceService {
                 .lt(SysPluginRolloutStatus::getCreateTime, cutoffDate);
         
         return rolloutStatusMapper.delete(queryWrapper);
+    }
+    
+    /**
+     * 获取插件配置
+     *
+     * @param pluginId 插件ID
+     * @return 插件配置
+     */
+    public Map<String, String> getPluginConfig(String pluginId) {
+        if (pluginId == null || pluginId.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        
+        try {
+            // 查询插件配置
+            List<SysPluginConfig> configs = configMapper.selectList(
+                    new LambdaQueryWrapper<SysPluginConfig>()
+                            .eq(SysPluginConfig::getPluginId, pluginId));
+            
+            Map<String, String> result = new HashMap<>();
+            for (SysPluginConfig config : configs) {
+                result.put(config.getConfigKey(), config.getConfigValue());
+            }
+            
+            return result;
+        } catch (Exception e) {
+            log.error("获取插件配置失败: {}, 错误: {}", pluginId, e.getMessage(), e);
+            return Collections.emptyMap();
+        }
+    }
+    
+    /**
+     * 获取插件数据目录
+     *
+     * @param pluginId 插件ID
+     * @return 插件数据目录
+     */
+    public File getPluginDataDir(String pluginId) {
+        if (pluginId == null || pluginId.isEmpty()) {
+            throw new IllegalArgumentException("插件ID不能为空");
+        }
+        
+        // 获取插件数据根目录
+        File dataRootDir = new File(pluginConfig.getPluginDataDir());
+        if (!dataRootDir.exists() && !dataRootDir.mkdirs()) {
+            log.error("创建插件数据根目录失败: {}", dataRootDir.getAbsolutePath());
+        }
+        
+        // 创建插件特定的数据目录
+        File pluginDataDir = new File(dataRootDir, pluginId);
+        if (!pluginDataDir.exists() && !pluginDataDir.mkdirs()) {
+            log.error("创建插件数据目录失败: {}", pluginDataDir.getAbsolutePath());
+        }
+        
+        return pluginDataDir;
     }
 } 

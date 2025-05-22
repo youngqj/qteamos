@@ -1077,4 +1077,92 @@ public class DynamicClassLoader extends URLClassLoader {
             );
         }
     }
+    
+    /**
+     * 添加目录到类加载器
+     * 
+     * @param directory 目录
+     * @throws ClassLoadingException 如果添加失败
+     */
+    public void addDirectory(File directory) throws ClassLoadingException {
+        if (closed) {
+            throw new ClassLoadingException(
+                "ClassLoader已关闭，无法添加目录: " + directory.getName(), 
+                ErrorType.CLASSLOADER_CLOSED
+            );
+        }
+        
+        if (!directory.exists() || !directory.isDirectory()) {
+            throw new ClassLoadingException(
+                "目录不存在或不是有效目录: " + directory.getAbsolutePath(),
+                ErrorType.RESOURCE_NOT_FOUND
+            );
+        }
+        
+        try {
+            URL directoryUrl = directory.toURI().toURL();
+            addURL(directoryUrl);
+            log.debug("插件[{}]类加载器添加目录: {}", pluginId, directory.getAbsolutePath());
+            
+            // 扫描并加载目录中的类文件
+            scanDirectory(directory, directory);
+        } catch (IOException e) {
+            throw new ClassLoadingException(
+                "添加目录失败: " + directory.getName(), 
+                e, 
+                ErrorType.CLASS_LOADING_FAILED
+            );
+        }
+    }
+    
+    /**
+     * 递归扫描目录中的类文件
+     * 
+     * @param rootDir 根目录
+     * @param currentDir 当前目录
+     */
+    private void scanDirectory(File rootDir, File currentDir) {
+        File[] files = currentDir.listFiles();
+        if (files == null) {
+            return;
+        }
+        
+        for (File file : files) {
+            if (file.isDirectory()) {
+                scanDirectory(rootDir, file);
+            } else if (file.getName().endsWith(".class")) {
+                // 计算类名
+                String className = getClassNameFromFile(rootDir, file);
+                
+                if (className != null && !className.isEmpty()) {
+                    // 预加载类
+                    if (configuration.isClassCachingEnabled()) {
+                        try {
+                            Class<?> clazz = loadClass(className, false);
+                            preloadedClassCache.put(className, new SoftReference<>(clazz));
+                            log.debug("插件[{}]从目录预加载类: {}", pluginId, className);
+                        } catch (Exception e) {
+                            log.debug("插件[{}]从目录预加载类失败: {}, 原因: {}", 
+                                    pluginId, className, e.getMessage());
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * 从文件获取类名
+     * 
+     * @param rootDir 根目录
+     * @param classFile 类文件
+     * @return 类名
+     */
+    private String getClassNameFromFile(File rootDir, File classFile) {
+        String relativePath = classFile.getAbsolutePath().substring(
+                rootDir.getAbsolutePath().length() + 1);
+        
+        return relativePath.replace(File.separatorChar, '.')
+                .substring(0, relativePath.length() - 6); // 去掉.class
+    }
 } 

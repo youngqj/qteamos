@@ -22,17 +22,17 @@
 ### 完整流程及对应模块
 
 1. **扫描发现**
-   - 模块：`PluginSystem`
-   - 方法：`scanAndLoadPlugins()`, `scanForNewPlugins()`
+   - 模块：`PluginSystemCoordinator`
+   - 方法：`scanPluginDirectory()`, `scanForNewPlugins()`
    - 描述：扫描插件目录，发现新的插件文件或目录
 
 2. **解析**
-   - 模块：`PluginFileUtils`, `PluginDescriptorLoader`
+   - 模块：`DefaultPluginLoader`, `PluginDescriptorLoader`
    - 方法：`parsePluginDescriptor()`, `loadFromJar()`
    - 描述：解析插件JAR文件中的描述信息，提取元数据
 
 3. **加载**
-   - 模块：`PluginLifecycleManager`
+   - 模块：`PluginLifecycleCoordinator`
    - 方法：`loadPlugin()`
    - 描述：创建插件类加载器，加载插件类和资源
    - 状态变化：CREATED → LOADED
@@ -43,14 +43,14 @@
    - 描述：将插件信息注册到插件注册表中
 
 5. **初始化**
-   - 模块：`PluginLifecycleManager`
-   - 方法：`initializePlugin()`
+   - 模块：`DefaultPluginInitializer`
+   - 方法：`initialize()`
    - 描述：调用插件的initialize()方法，完成初始化
    - 状态变化：LOADED → INITIALIZED
 
 6. **启动**
-   - 模块：`PluginLifecycleManager`
-   - 方法：`startPlugin()`
+   - 模块：`DefaultPluginStarter`
+   - 方法：`start()`
    - 描述：调用插件的start()方法，启动插件功能
    - 状态变化：INITIALIZED → STARTED/RUNNING
 
@@ -70,7 +70,7 @@
    - 状态变化：IN_PROGRESS → COMPLETED
 
 10. **卸载/停止**
-    - 模块：`PluginLifecycleManager`
+    - 模块：`PluginLifecycleCoordinator`
     - 方法：`stopPlugin()`, `unloadPlugin()`
     - 描述：停止并卸载插件，释放资源
 
@@ -100,7 +100,7 @@ QTeamOS插件系统采用事件驱动架构，实现了松耦合的组件通信�
 ### 插件加载与启动时序图
 
 ```
-PluginSystem                  PluginLifecycleManager         PluginRegistry           EventBus                插件实例                  控制器注册
+PluginSystemCoordinator      PluginLifecycleCoordinator     PluginRegistry           EventBus                插件实例                  控制器注册
     |                               |                             |                       |                       |                         |
     |--扫描插件目录---------------->|                             |                       |                       |                         |
     |                               |                             |                       |                       |                         |
@@ -129,7 +129,7 @@ PluginSystem                  PluginLifecycleManager         PluginRegistry     
 ### 灰度发布时序图
 
 ```
-用户/管理员             PluginRolloutManager           PluginLifecycleManager       EventBus               RolloutEventListener       网关模块
+用户/管理员             PluginRolloutManager           PluginLifecycleCoordinator  EventBus               RolloutEventListener       网关模块
     |                         |                               |                         |                         |                         |
     |--启动灰度发布---------->|                               |                         |                         |                         |
     |                         |                               |                         |                         |                         |
@@ -163,9 +163,9 @@ PluginSystem                  PluginLifecycleManager         PluginRegistry     
 
 ## 版本管理相关流程
 
-- **版本存储**：`PluginVersionManager` 负责将插件版本保存到版本库
+- **版本存储**：`EnhancedPluginVersionManager` 负责将插件版本保存到版本库
 - **版本回滚**：`PluginRolloutManager.rollbackToVersion()` 在灰度失败时回退到稳定版本
-- **版本升级路径**：`PluginVersionManager.getUpgradePath()` 计算版本间升级路径
+- **版本升级路径**：`EnhancedPluginVersionManager.getUpgradePath()` 计算版本间升级路径
 
 ## 事件驱动优势
 

@@ -42,7 +42,9 @@ public class EventPersistenceHandler implements EventHandler {
     @EventListener(topics = "system", types = "startup")
     public boolean persistSystemStartupEvent(SystemStartupEvent event) {
         try {
-            persistEvent(event, null, objectMapper.writeValueAsString(event.getSystemInfo()));
+            persistEvent(event, null, objectMapper.writeValueAsString(
+                    new SystemInfo(System.getProperty("os.name"), System.getProperty("os.version"), Runtime.getRuntime().availableProcessors())
+            ));
             log.info("系统启动事件已持久化");
             return true;
         } catch (Exception e) {
@@ -58,7 +60,7 @@ public class EventPersistenceHandler implements EventHandler {
     public boolean persistSystemShutdownEvent(SystemShutdownEvent event) {
         try {
             persistEvent(event, null, objectMapper.writeValueAsString(
-                    new ShutdownInfo(event.getReason().name(), event.getReason().getDescription(), event.getRemainingTime())
+                    new ShutdownInfo(event.getReason().name(), event.getReason().getDescription(), 0)
             ));
             log.info("系统关闭事件已持久化");
             return true;
@@ -183,6 +185,33 @@ public class EventPersistenceHandler implements EventHandler {
         
         public Object getData() {
             return data;
+        }
+    }
+    
+    /**
+     * 系统信息
+     */
+    private static class SystemInfo {
+        private final String osName;
+        private final String osVersion;
+        private final int processors;
+        
+        public SystemInfo(String osName, String osVersion, int processors) {
+            this.osName = osName;
+            this.osVersion = osVersion;
+            this.processors = processors;
+        }
+        
+        public String getOsName() {
+            return osName;
+        }
+        
+        public String getOsVersion() {
+            return osVersion;
+        }
+        
+        public int getProcessors() {
+            return processors;
         }
     }
 } 

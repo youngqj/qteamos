@@ -41,6 +41,9 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 默认缓存服务实现
@@ -80,6 +83,11 @@ public class DefaultCacheService implements CacheService {
     private boolean initialized = false;
     
     /**
+     * 缓存清理调度器
+     */
+    private ScheduledExecutorService cleanupScheduler;
+    
+    /**
      * 初始化缓存服务
      */
     @Override
@@ -108,6 +116,16 @@ public class DefaultCacheService implements CacheService {
         
         initialized = true;
         log.info("缓存服务初始化完成，使用模式: {}", redisEnabled ? "Redis + 本地缓存" : "仅本地缓存");
+        
+        // 启动定期清理过期缓存的调度器
+        cleanupScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread thread = new Thread(r, "cache-cleanup-thread");
+            thread.setDaemon(true);
+            return thread;
+        });
+        
+        cleanupScheduler.scheduleAtFixedRate(this::cleanupCache, 
+                30, 30, TimeUnit.SECONDS);
     }
     
     /**
@@ -119,6 +137,10 @@ public class DefaultCacheService implements CacheService {
         localCache.clear();
         initialized = false;
         log.info("缓存服务已关闭");
+        
+        if (cleanupScheduler != null) {
+            cleanupScheduler.shutdownNow();
+        }
     }
     
     /**
@@ -172,5 +194,309 @@ public class DefaultCacheService implements CacheService {
         }
         
         return status.toString();
+    }
+    
+    /**
+     * 清理过期缓存
+     */
+    private void cleanupCache() {
+        try {
+            int cleanedCount = 0;
+            
+            for (Map.Entry<String, Object> entry : localCache.entrySet()) {
+                if (entry.getValue() instanceof CacheEntry && ((CacheEntry<?>) entry.getValue()).isExpired()) {
+                    localCache.remove(entry.getKey());
+                    cleanedCount++;
+                }
+            }
+            
+            if (cleanedCount > 0) {
+                log.debug("缓存清理完成，移除了{}个过期条目", cleanedCount);
+            }
+        } catch (Exception e) {
+            log.error("缓存清理过程中发生异常", e);
+        }
+    }
+    
+    /**
+     * 缓存条目
+     *
+     * @param <T> 值类型
+     */
+    private static class CacheEntry<T> {
+        /**
+         * 缓存值
+         */
+        private final T value;
+        
+        /**
+         * 过期时间（毫秒时间戳），0表示永不过期
+         */
+        private final long expireTime;
+        
+        /**
+         * 构造函数
+         *
+         * @param value 缓存值
+         * @param expireTime 过期时间戳
+         */
+        public CacheEntry(T value, long expireTime) {
+            this.value = value;
+            this.expireTime = expireTime;
+        }
+        
+        /**
+         * 获取缓存值
+         *
+         * @return 缓存值
+         */
+        public T getValue() {
+            return value;
+        }
+        
+        /**
+         * 获取过期时间
+         *
+         * @return 过期时间戳
+         */
+        public long getExpireTime() {
+            return expireTime;
+        }
+        
+        /**
+         * 检查是否已过期
+         *
+         * @return 是否已过期
+         */
+        public boolean isExpired() {
+            return expireTime > 0 && System.currentTimeMillis() > expireTime;
+        }
+    }
+    
+    /**
+     * 存储缓存数据
+     *
+     * @param key 缓存键
+     * @param value 缓存值
+     * @param expireSeconds 过期时间(秒)，0表示永不过期
+     * @param <T> 缓存值类型
+     * @return 操作是否成功
+     */
+    @Override
+    public <T> boolean set(String key, T value, int expireSeconds) {
+        if (key == null || value == null) {
+            return false;
+        }
+        
+        long expireTime = 0;
+        if (expireSeconds > 0) {
+            expireTime = System.currentTimeMillis() + (expireSeconds * 1000L);
+        }
+        
+        // 存储到本地缓存
+        localCache.put(key, new CacheEntry<>(value, expireTime));
+        
+        // 如果启用了Redis，也存储到Redis中
+        if (redisEnabled && redisTemplate != null) {
+            try {
+                redisTemplate.opsForValue().set(key, value);
+                if (expireSeconds > 0) {
+                    redisTemplate.expire(key, expireSeconds, TimeUnit.SECONDS);
+                }
+            } catch (Exception e) {
+                log.error("Redis存储缓存失败: key={}", key, e);
+            }
+        }
+        
+        return true;
+    }
+    
+    /**
+     * 获取缓存数据
+     *
+     * @param key 缓存键
+     * @param clazz 返回值类型Class
+     * @param <T> 返回值类型
+     * @return 缓存值，不存在则返回null
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T> T get(String key, Class<T> clazz) {
+        if (key == null || clazz == null) {
+            return null;
+        }
+        
+        // 先从本地缓存中获取
+        Object localValue = localCache.get(key);
+        if (localValue instanceof CacheEntry) {
+            CacheEntry<?> entry = (CacheEntry<?>) localValue;
+            
+            // 检查是否过期
+            if (entry.isExpired()) {
+                localCache.remove(key);
+                return null;
+            }
+            
+            Object value = entry.getValue();
+            if (clazz.isInstance(value)) {
+                return (T) value;
+            }
+        }
+        
+        // 如果本地没有或类型不匹配，尝试从Redis获取
+        if (redisEnabled && redisTemplate != null) {
+            try {
+                Object redisValue = redisTemplate.opsForValue().get(key);
+                if (redisValue != null && clazz.isInstance(redisValue)) {
+                    // 更新本地缓存
+                    long expireTime = 0;
+                    Long ttl = redisTemplate.getExpire(key, TimeUnit.SECONDS);
+                    if (ttl != null && ttl > 0) {
+                        expireTime = System.currentTimeMillis() + (ttl * 1000L);
+                    }
+                    localCache.put(key, new CacheEntry<>(redisValue, expireTime));
+                    
+                    return (T) redisValue;
+                }
+            } catch (Exception e) {
+                log.error("Redis获取缓存失败: key={}", key, e);
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * 删除缓存
+     *
+     * @param key 缓存键
+     * @return 操作是否成功
+     */
+    @Override
+    public boolean delete(String key) {
+        if (key == null) {
+            return false;
+        }
+        
+        // 从本地缓存删除
+        localCache.remove(key);
+        
+        // 如果启用了Redis，也从Redis中删除
+        if (redisEnabled && redisTemplate != null) {
+            try {
+                redisTemplate.delete(key);
+            } catch (Exception e) {
+                log.error("Redis删除缓存失败: key={}", key, e);
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    /**
+     * 清空所有缓存
+     *
+     * @return 操作是否成功
+     */
+    @Override
+    public boolean clear() {
+        // 清空本地缓存
+        localCache.clear();
+        
+        // 如果启用了Redis，尝试清空Redis
+        if (redisEnabled && redisTemplate != null) {
+            try {
+                redisTemplate.getConnectionFactory().getConnection().flushDb();
+            } catch (Exception e) {
+                log.error("Redis清空缓存失败", e);
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    /**
+     * 检查键是否存在
+     *
+     * @param key 缓存键
+     * @return 是否存在
+     */
+    @Override
+    public boolean exists(String key) {
+        if (key == null) {
+            return false;
+        }
+        
+        // 检查本地缓存
+        Object localValue = localCache.get(key);
+        if (localValue instanceof CacheEntry) {
+            CacheEntry<?> entry = (CacheEntry<?>) localValue;
+            if (!entry.isExpired()) {
+                return true;
+            } else {
+                localCache.remove(key);
+            }
+        }
+        
+        // 如果本地没有，检查Redis
+        if (redisEnabled && redisTemplate != null) {
+            try {
+                return Boolean.TRUE.equals(redisTemplate.hasKey(key));
+            } catch (Exception e) {
+                log.error("Redis检查键存在失败: key={}", key, e);
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * 获取缓存剩余过期时间
+     *
+     * @param key 缓存键
+     * @return 剩余过期时间(秒)，-1表示不存在，-2表示永不过期
+     */
+    @Override
+    public long ttl(String key) {
+        if (key == null) {
+            return -1;
+        }
+        
+        // 检查本地缓存
+        Object localValue = localCache.get(key);
+        if (localValue instanceof CacheEntry) {
+            CacheEntry<?> entry = (CacheEntry<?>) localValue;
+            
+            // 检查是否过期
+            if (entry.isExpired()) {
+                localCache.remove(key);
+                return -1;
+            }
+            
+            // 永不过期
+            if (entry.getExpireTime() == 0) {
+                return -2;
+            }
+            
+            // 计算剩余时间
+            long remainingMs = entry.getExpireTime() - System.currentTimeMillis();
+            return remainingMs > 0 ? remainingMs / 1000 : 0;
+        }
+        
+        // 如果本地没有，检查Redis
+        if (redisEnabled && redisTemplate != null) {
+            try {
+                Long ttl = redisTemplate.getExpire(key, TimeUnit.SECONDS);
+                if (ttl != null) {
+                    return ttl;
+                }
+            } catch (Exception e) {
+                log.error("Redis获取过期时间失败: key={}", key, e);
+            }
+        }
+        
+        return -1;
     }
 } 

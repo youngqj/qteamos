@@ -70,8 +70,8 @@ public class PluginDescriptor {
     
     /**
      * 插件信任级别
-     * trusted: 受信任的
-     * official: 官方的
+     * trust: 受信任的
+     * untrusted: 不受信任的
      */
     private String trust;
     

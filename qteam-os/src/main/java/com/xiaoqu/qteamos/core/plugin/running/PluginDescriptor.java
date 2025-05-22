@@ -1,7 +1,11 @@
 package com.xiaoqu.qteamos.core.plugin.running;
 
-import lombok.Builder;
 import lombok.Data;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.List;
 import java.util.Map;
@@ -16,6 +20,10 @@ import java.util.Map;
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
 public class PluginDescriptor {
     
     /**
@@ -24,7 +32,6 @@ public class PluginDescriptor {
      *  获取插件的唯一标识
      *
      * @return 插件ID
-
      */
     private String pluginId;
     
@@ -63,8 +70,8 @@ public class PluginDescriptor {
     
     /**
      * 插件信任级别
-     * trusted: 受信任的
-     * official: 官方的
+     * trust: 受信任的
+     * untrusted: 不受信任的
      */
     private String trust;
     
@@ -86,7 +93,7 @@ public class PluginDescriptor {
     /**
      * 插件优先级，数值越小优先级越高
      */
-    private int priority;
+    private Integer priority;
     
     /**
      * 插件的配置项
@@ -101,7 +108,7 @@ public class PluginDescriptor {
     /**
      * 更新相关信息
      */
-    private Map<String, Object> updateInfo;
+    private Map<String, String> updateInfo = new java.util.HashMap<>();
     
     /**
      * 生命周期钩子配置
@@ -159,7 +166,7 @@ public class PluginDescriptor {
      * @return 是否受信任
      */
     public boolean isTrusted() {
-        return "trusted".equalsIgnoreCase(trust) || "official".equalsIgnoreCase(trust);
+        return trust != null && "trust".equalsIgnoreCase(trust);
     }
     
     /**
@@ -178,8 +185,8 @@ public class PluginDescriptor {
      * @return 上一个版本号，如果未指定则返回null
      */
     public String getPreviousVersion() {
-        if (updateInfo != null && updateInfo.containsKey("previousVersion")) {
-            return (String) updateInfo.get("previousVersion");
+        if (updateInfo != null) {
+            return updateInfo.get("previousVersion");
         }
         return null;
     }
@@ -190,21 +197,21 @@ public class PluginDescriptor {
      * @return 是否包含数据库变更
      */
     public boolean hasDatabaseChanges() {
-        if (updateInfo != null && updateInfo.containsKey("databaseChange")) {
-            return (boolean) updateInfo.getOrDefault("databaseChange", false);
+        if (updateInfo != null) {
+            return "true".equalsIgnoreCase(updateInfo.get("databaseChange"));
         }
         return false;
     }
     
     /**
-     * 获取数据库迁移脚本列表
+     * 获取迁移脚本列表
      * 
      * @return 迁移脚本列表
      */
-    @SuppressWarnings("unchecked")
     public List<String> getMigrationScripts() {
         if (updateInfo != null && updateInfo.containsKey("migrationScripts")) {
-            return (List<String>) updateInfo.get("migrationScripts");
+            String scripts = updateInfo.get("migrationScripts");
+            return List.of(scripts.split(","));
         }
         return List.of();
     }
@@ -214,11 +221,10 @@ public class PluginDescriptor {
      * 
      * @return 是否支持回滚
      */
-    @SuppressWarnings("unchecked")
     public boolean supportsRollback() {
         if (updateInfo != null && updateInfo.containsKey("rollback")) {
-            Map<String, Object> rollbackInfo = (Map<String, Object>) updateInfo.get("rollback");
-            return (boolean) rollbackInfo.getOrDefault("supported", false);
+            String rollbackInfo = updateInfo.get("rollback");
+            return Boolean.parseBoolean(rollbackInfo.split(",")[0]);
         }
         return false;
     }
@@ -278,7 +284,7 @@ public class PluginDescriptor {
      * @return 扩展点对象，如果不存在则返回null
      */
     public ExtensionPoint getExtensionPoint(String extensionPointId) {
-        if (extensionPoints == null || extensionPointId == null) {
+        if (extensionPoints == null || extensionPoints.isEmpty()) {
             return null;
         }
         
@@ -289,12 +295,128 @@ public class PluginDescriptor {
     }
     
     /**
-     *.检查插件是否提供指定的扩展点
+     * 检查插件是否提供指定ID的扩展点
      *
      * @param extensionPointId 扩展点ID
      * @return 是否提供该扩展点
      */
     public boolean providesExtensionPoint(String extensionPointId) {
         return getExtensionPoint(extensionPointId) != null;
+    }
+    
+    /**
+     * 创建一个PluginDescriptor构建器
+     *
+     * @return PluginDescriptorBuilder实例
+     */
+    public static PluginDescriptorBuilder builder() {
+        return new PluginDescriptorBuilder();
+    }
+    
+    /**
+     * 插件描述符构建器
+     * 用于构建PluginDescriptor实例
+     */
+    public static class PluginDescriptorBuilder {
+        private final PluginDescriptor descriptor = new PluginDescriptor();
+        
+        public PluginDescriptorBuilder pluginId(String pluginId) {
+            descriptor.pluginId = pluginId;
+            return this;
+        }
+        
+        public PluginDescriptorBuilder name(String name) {
+            descriptor.name = name;
+            return this;
+        }
+        
+        public PluginDescriptorBuilder version(String version) {
+            descriptor.version = version;
+            return this;
+        }
+        
+        public PluginDescriptorBuilder description(String description) {
+            descriptor.description = description;
+            return this;
+        }
+        
+        public PluginDescriptorBuilder author(String author) {
+            descriptor.author = author;
+            return this;
+        }
+        
+        public PluginDescriptorBuilder mainClass(String mainClass) {
+            descriptor.mainClass = mainClass;
+            return this;
+        }
+        
+        public PluginDescriptorBuilder type(String type) {
+            descriptor.type = type;
+            return this;
+        }
+        
+        public PluginDescriptorBuilder trust(String trust) {
+            descriptor.trust = trust;
+            return this;
+        }
+        
+        public PluginDescriptorBuilder dependencies(List<PluginDependency> dependencies) {
+            descriptor.dependencies = dependencies;
+            return this;
+        }
+        
+        public PluginDescriptorBuilder requiredSystemVersion(String requiredSystemVersion) {
+            descriptor.requiredSystemVersion = requiredSystemVersion;
+            return this;
+        }
+        
+        public PluginDescriptorBuilder enabled(boolean enabled) {
+            descriptor.enabled = enabled;
+            return this;
+        }
+        
+        public PluginDescriptorBuilder priority(Integer priority) {
+            descriptor.priority = priority;
+            return this;
+        }
+        
+        public PluginDescriptorBuilder properties(Map<String, Object> properties) {
+            descriptor.properties = properties;
+            return this;
+        }
+        
+        public PluginDescriptorBuilder permissions(List<String> permissions) {
+            descriptor.permissions = permissions;
+            return this;
+        }
+        
+        public PluginDescriptorBuilder updateInfo(Map<String, String> updateInfo) {
+            descriptor.updateInfo = updateInfo;
+            return this;
+        }
+        
+        public PluginDescriptorBuilder lifecycle(Map<String, String> lifecycle) {
+            descriptor.lifecycle = lifecycle;
+            return this;
+        }
+        
+        public PluginDescriptorBuilder extensionPoints(List<ExtensionPoint> extensionPoints) {
+            descriptor.extensionPoints = extensionPoints;
+            return this;
+        }
+        
+        public PluginDescriptorBuilder resources(List<PluginResource> resources) {
+            descriptor.resources = resources;
+            return this;
+        }
+        
+        public PluginDescriptorBuilder metadata(Map<String, Object> metadata) {
+            descriptor.metadata = metadata;
+            return this;
+        }
+        
+        public PluginDescriptor build() {
+            return descriptor;
+        }
     }
 } 

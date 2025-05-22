@@ -90,4 +90,16 @@ public interface SysPluginInfoMapper extends BaseMapper<SysPluginInfo> {
      * @return 类型-数量映射
      */
     List<Map<String, Object>> countPluginsByType();
+    
+    /**
+     * 联合查询插件信息和状态
+     *
+     * @return 插件信息和状态的联合结果
+     */
+    @Select("SELECT i.*, s.enabled, s.status, s.error_message, s.installed_time, " +
+            "s.last_start_time, s.last_stop_time, i.jar_file AS jar_file, i.have_dependency AS have_dependency " +
+            "FROM sys_plugin_info i " +
+            "LEFT JOIN sys_plugin_status s ON i.plugin_id = s.plugin_id AND i.version = s.version " +
+            "WHERE i.deleted = 0")
+    List<Map<String, Object>> selectPluginsWithStatus();
 } 

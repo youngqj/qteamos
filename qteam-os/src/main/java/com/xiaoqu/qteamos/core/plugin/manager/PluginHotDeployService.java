@@ -47,7 +47,7 @@ class PluginInfoFactory {
         // 创建新的PluginInfo
         return PluginInfo.builder()
                 .descriptor(newDescriptor)
-                .pluginFile(newPluginPath.toFile())
+                .file(newPluginPath.toFile())
                 .jarPath(newPluginPath)
                 .state(PluginState.CREATED)
                 .build();
@@ -461,7 +461,7 @@ public class PluginHotDeployService {
             // 创建插件信息
             PluginInfo pluginInfo = PluginInfo.builder()
                     .descriptor(descriptor)
-                    .pluginFile(pluginPath.toFile())
+                    .file(pluginPath.toFile())
                     .jarPath(pluginPath)
                     .state(PluginState.CREATED)
                     .build();
@@ -592,20 +592,19 @@ public class PluginHotDeployService {
     /**
      * 热部署事件
      */
-    public static class HotDeploymentEvent implements com.xiaoqu.qteamos.core.plugin.event.Event {
+    public static class HotDeploymentEvent extends com.xiaoqu.qteamos.core.plugin.event.Event {
         private final String pluginId;
         private final HotDeploymentAction action;
         private final String oldVersion;
         private final String newVersion;
-        private final long timestamp;
         
         public HotDeploymentEvent(String pluginId, HotDeploymentAction action, 
                                  String oldVersion, String newVersion) {
+            super("plugin", "hot_deployment", pluginId);
             this.pluginId = pluginId;
             this.action = action;
             this.oldVersion = oldVersion;
             this.newVersion = newVersion;
-            this.timestamp = System.currentTimeMillis();
         }
         
         public String getPluginId() {
@@ -622,26 +621,6 @@ public class PluginHotDeployService {
         
         public String getNewVersion() {
             return newVersion;
-        }
-        
-        @Override
-        public long getTimestamp() {
-            return timestamp;
-        }
-        
-        @Override
-        public String getTopic() {
-            return "plugin";
-        }
-        
-        @Override
-        public String getType() {
-            return "hot_deployment";
-        }
-        
-        @Override
-        public String getSource() {
-            return pluginId;
         }
     }
     

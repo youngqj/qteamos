@@ -109,15 +109,7 @@ qteamos:
     disable-html-escaping: true
     serialize-nulls: true
     pretty-printing: false
-  # 加密配置
-  # jasypt 已禁用，改用HuTool实现加密功能
-  jasypt:
-    encryptor:
-      # 禁用Jasypt，使用HuTool替代
-      enabled: false
-      # 以下配置已不再使用，保留仅作参考
-      # password: "Xiaoqu@Jasypt2024PasswordForConfigurationEncryption"
-      # algorithm: PBEWithMD5AndDES
+
 
       
   # 静态资源路径配置
@@ -167,7 +159,7 @@ plugin:
   
   # 插件自动发现和扫描
   auto-discover: true  # 是否开启自动发现插件功能
-  scan-interval: 60    # 扫描间隔（秒）
+  scan-interval: 60000  # 扫描间隔（毫秒）
   
   # 加载与启动配置
   load-timeout: 30000  # 插件加载超时时间（毫秒）

@@ -5,13 +5,18 @@ mainClass: "com.xiaoqu.qteamos.plugin.helloworld.HelloWorldPlugin"
 author: "yangqijun"
 description: "简单的HelloWorld插件，用于测试和验证插件框架"
 type: "system"
-trust: "trusted"
+trust: "trust"
 license: "Mulan PSL v2"
 priority: 10
 provider: "QTeamOS团队"
 website: "https://qteamos.com"
 category: "tools"
-main: "com.xiaoqu.qteamos.plugin.helloworld.HelloWorldPlugin"
+
+# 元数据
+metadata:
+  controllers:
+    - com.xiaoqu.qteamos.plugin.helloworld.controller.HelloWorldController
+    - com.xiaoqu.qteamos.plugin.helloworld.controller.ViewDemoController
 
 # 所需权限
 permissions:

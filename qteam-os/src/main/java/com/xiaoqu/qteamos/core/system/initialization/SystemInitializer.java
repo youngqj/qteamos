@@ -23,7 +23,7 @@ package com.xiaoqu.qteamos.core.system.initialization;
 import com.xiaoqu.qteamos.core.cache.CacheService;
 import com.xiaoqu.qteamos.core.databases.DatabaseService;
 import com.xiaoqu.qteamos.core.gateway.GatewayService;
-import com.xiaoqu.qteamos.core.plugin.PluginSystem;
+import com.xiaoqu.qteamos.core.plugin.coordinator.PluginSystemCoordinator;
 import com.xiaoqu.qteamos.core.plugin.event.EventBus;
 import com.xiaoqu.qteamos.core.plugin.event.plugins.SystemStartupEvent;
 import com.xiaoqu.qteamos.core.security.SecurityService;
@@ -33,6 +33,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -101,7 +103,7 @@ public class SystemInitializer implements ApplicationRunner {
      * 插件系统
      */
     @Autowired
-    private PluginSystem pluginSystem;
+    private PluginSystemCoordinator pluginSystemCoordinator;
     
     /**
      * 当前启动阶段
@@ -140,53 +142,34 @@ public class SystemInitializer implements ApplicationRunner {
      */
     @Override
     public void run(ApplicationArguments args) throws Exception {
+        log.info("系统初始化器开始执行...");
+        
         try {
-            log.info("系统初始化流程开始...");
-            
-            // 启动核心服务
-            startCoreServices();
-            
-            // 设置启动阶段为插件系统
-            updatePhase(StartupPhase.PLUGIN_SYSTEM);
-            log.info("正在初始化插件系统...");
-            
-            // 禁用已有的自动初始化（通过PostConstruct），由我们手动控制
-            // 注意：这里依赖PluginSystem.init()方法的实现，可能需要修改PluginSystem类
-            initializePluginSystem();
-            
-            // 设置启动阶段为插件加载
-            updatePhase(StartupPhase.PLUGIN_LOADING);
-            log.info("正在加载插件...");
-            
-            // 如果配置了自动加载插件，则执行加载
-            if (properties.isAutoLoadPlugins()) {
-                log.info("执行插件自动加载...");
-                // 这里不应该使用pluginSystem.scanAndLoadPlugins()，而是使用我们的控制流程
-                loadPlugins();
-            }
-            
-            // 设置启动阶段为应用服务
-            updatePhase(StartupPhase.APPLICATION_SERVICES);
-            log.info("正在启动应用服务...");
-            
-            // 启动应用服务
-            startApplicationServices();
-            
-            // 设置启动阶段为就绪
-            updatePhase(StartupPhase.READY);
-            
-            // 计算启动总耗时
-            long elapsedTime = System.currentTimeMillis() - startTime;
-            log.info("系统初始化完成，总耗时: {} 毫秒", elapsedTime);
-            
-            // 发布系统启动事件，通知所有组件系统已就绪
+            // 发布系统启动事件
             eventBus.postEvent(new SystemStartupEvent());
             
-        } catch (Exception e) {
-            log.error("系统启动过程中发生错误", e);
-            if (!properties.isContinueOnError()) {
-                throw e;
+            // 初始化数据库
+            if (databaseService != null) {
+                log.info("执行数据库初始化...");
+                databaseService.initialize();
             }
+            
+            // 初始化API网关
+            if (gatewayService != null) {
+                log.info("执行API网关初始化...");
+                gatewayService.initialize();
+            }
+            
+            // 初始化插件系统
+            if (properties.isAutoLoadPlugins()) {
+                log.info("执行插件系统初始化...");
+                // 第一阶段：初始化和加载已有插件
+                pluginSystemCoordinator.initExistingPlugins();
+                log.info("插件系统初始化第一阶段完成");
+            }
+        } catch (Exception e) {
+            log.error("系统初始化过程中发生错误", e);
+            throw e;
         }
     }
     
@@ -357,46 +340,13 @@ public class SystemInitializer implements ApplicationRunner {
      */
     private void initializePluginSystem() {
         try {
-            log.info("正在初始化插件系统...");
-            pluginSystem.init();
+            // 初始化插件系统，已改为无返回值
+            pluginSystemCoordinator.initExistingPlugins();
             log.info("插件系统初始化完成");
         } catch (Exception e) {
             log.error("插件系统初始化失败", e);
             if (!properties.isContinueOnError()) {
                 throw e;
-            }
-        }
-    }
-    
-    /**
-     * 加载插件
-     */
-    private void loadPlugins() {
-        try {
-            log.info("正在扫描并加载插件...");
-            // 插件系统已在init()方法中启动了自动扫描和监控
-            // 这里只需要确保临时目录也被正确扫描
-            
-            // 确保插件目录存在
-            File pluginDir = new File(properties.getPluginStoragePath());
-            if (!pluginDir.exists()) {
-                log.info("插件目录不存在，创建目录: {}", pluginDir.getAbsolutePath());
-                pluginDir.mkdirs();
-            }
-            
-            // 确保临时插件目录存在
-            File tempDir = new File(properties.getPluginTempDir());
-            if (!tempDir.exists()) {
-                log.info("临时插件目录不存在，创建目录: {}", tempDir.getAbsolutePath());
-                tempDir.mkdirs();
-            }
-            
-            log.info("插件扫描加载完成，临时目录: {}, 安装目录: {}", 
-                    properties.getPluginTempDir(), properties.getPluginStoragePath());
-        } catch (Exception e) {
-            log.error("插件加载失败", e);
-            if (!properties.isContinueOnError()) {
-                throw new RuntimeException("插件加载失败", e);
             }
         }
     }
@@ -466,6 +416,18 @@ public class SystemInitializer implements ApplicationRunner {
          */
         public Runnable getStartupAction() {
             return startupAction;
+        }
+    }
+
+    // 在系统完全启动后调用第二阶段初始化
+    @EventListener(ApplicationReadyEvent.class)
+    public void onApplicationReady() {
+        try {
+            // 系统完全启动后，开始监控和自动发现
+            pluginSystemCoordinator.startMonitoring();
+            log.info("插件系统初始化第二阶段完成：监控和自动发现已启动");
+        } catch (Exception e) {
+            log.error("启动插件监控异常", e);
         }
     }
 } 

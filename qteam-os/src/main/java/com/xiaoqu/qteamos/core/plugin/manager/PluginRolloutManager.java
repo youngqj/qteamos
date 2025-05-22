@@ -755,8 +755,9 @@ public class PluginRolloutManager {
      * @return 是否应自动激活
      */
     public boolean shouldAutoActivate(PluginDescriptor descriptor) {
-        return "system".equals(descriptor.getType()) && 
-               ("trusted".equals(descriptor.getTrust()) || "official".equals(descriptor.getTrust()));
+        // 检查插件的安全级别，只有受信任的插件才能进行自动灰度发布
+        boolean isTrusted = "trust".equals(descriptor.getTrust());
+        return "system".equals(descriptor.getType()) && isTrusted;
     }
     
     /**

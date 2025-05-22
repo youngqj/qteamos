@@ -1,6 +1,5 @@
 package com.xiaoqu.qteamos.core.plugin.running;
 
-import lombok.Builder;
 import lombok.Data;
 
 /**
@@ -11,7 +10,6 @@ import lombok.Data;
  * @version 1.0.0
  */
 @Data
-@Builder
 public class ExtensionPoint {
     
     /**
@@ -44,14 +42,12 @@ public class ExtensionPoint {
      * 是否允许多个实现
      * 默认为true
      */
-    @Builder.Default
     private boolean multiple = true;
     
     /**
      * 是否必须实现
      * 默认为false
      */
-    @Builder.Default
     private boolean required = false;
     
     /**
@@ -81,5 +77,61 @@ public class ExtensionPoint {
     public boolean isValid() {
         return id != null && !id.isEmpty() && 
                name != null && !name.isEmpty();
+    }
+    
+    /**
+     * 创建一个ExtensionPoint构建器
+     *
+     * @return ExtensionPointBuilder实例
+     */
+    public static ExtensionPointBuilder builder() {
+        return new ExtensionPointBuilder();
+    }
+    
+    /**
+     * 扩展点构建器
+     * 用于构建ExtensionPoint实例
+     */
+    public static class ExtensionPointBuilder {
+        private final ExtensionPoint extensionPoint = new ExtensionPoint();
+        
+        public ExtensionPointBuilder id(String id) {
+            extensionPoint.id = id;
+            return this;
+        }
+        
+        public ExtensionPointBuilder name(String name) {
+            extensionPoint.name = name;
+            return this;
+        }
+        
+        public ExtensionPointBuilder description(String description) {
+            extensionPoint.description = description;
+            return this;
+        }
+        
+        public ExtensionPointBuilder type(String type) {
+            extensionPoint.type = type;
+            return this;
+        }
+        
+        public ExtensionPointBuilder interfaceClass(String interfaceClass) {
+            extensionPoint.interfaceClass = interfaceClass;
+            return this;
+        }
+        
+        public ExtensionPointBuilder multiple(boolean multiple) {
+            extensionPoint.multiple = multiple;
+            return this;
+        }
+        
+        public ExtensionPointBuilder required(boolean required) {
+            extensionPoint.required = required;
+            return this;
+        }
+        
+        public ExtensionPoint build() {
+            return extensionPoint;
+        }
     }
 } 

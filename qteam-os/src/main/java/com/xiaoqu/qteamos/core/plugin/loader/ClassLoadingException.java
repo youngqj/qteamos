@@ -36,6 +36,11 @@ public class ClassLoadingException extends Exception {
         CLASSLOADER_CLOSED,
         
         /**
+         * 资源未找到
+         */
+        RESOURCE_NOT_FOUND,
+        
+        /**
          * 未知错误
          */
         UNKNOWN

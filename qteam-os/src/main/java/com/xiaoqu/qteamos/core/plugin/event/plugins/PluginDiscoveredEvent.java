@@ -33,7 +33,7 @@ public class PluginDiscoveredEvent extends PluginEvent {
      * @param candidate 发现的插件候选者
      */
     public PluginDiscoveredEvent(PluginCandidate candidate) {
-        super("discovered", candidate.getPluginId());
+        super("discovered", candidate.getPluginId(), null);
         this.candidate = candidate;
     }
     

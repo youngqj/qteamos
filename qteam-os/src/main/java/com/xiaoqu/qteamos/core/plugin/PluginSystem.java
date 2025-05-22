@@ -882,7 +882,7 @@ public class PluginSystem {
         
         // 根据类型和信任级别决定处理方式
         boolean isSystemPlugin = "system".equals(descriptor.getType());
-        boolean isTrusted = "trusted".equals(descriptor.getTrust()) || "official".equals(descriptor.getTrust());
+        boolean isTrusted = "trust".equals(descriptor.getTrust());
         
         log.info("====> 插件类型: {}, 信任级别: {}, 是否系统插件: {}, 是否可信: {}", 
             descriptor.getType(), descriptor.getTrust(), isSystemPlugin, isTrusted);
@@ -1053,7 +1053,7 @@ public class PluginSystem {
         
         // 检查是否为系统插件
         boolean isSystemPlugin = "system".equals(descriptor.getType());
-        boolean isTrusted = "trusted".equals(descriptor.getTrust()) || "official".equals(descriptor.getTrust());
+        boolean isTrusted = "trust".equals(descriptor.getTrust());
         
         if (isSystemPlugin && isTrusted) {
             // 系统插件需要重新加载

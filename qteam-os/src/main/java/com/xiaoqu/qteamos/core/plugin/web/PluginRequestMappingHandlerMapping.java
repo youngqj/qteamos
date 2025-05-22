@@ -1,11 +1,14 @@
 package com.xiaoqu.qteamos.core.plugin.web;
 
+import java.lang.reflect.Method;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
-import com.xiaoqu.qteamos.common.utils.EncryptionUtils;
-import com.xiaoqu.qteamos.core.plugin.manager.PluginRegistry;
-import com.xiaoqu.qteamos.core.plugin.running.PluginInfo;
-import com.xiaoqu.qteamos.core.plugin.running.PluginState;
-import com.xiaoqu.qteamos.core.plugin.manager.PluginStateManager;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,19 +20,18 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.stereotype.Component;
-
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.method.HandlerMethod;
-
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
-import java.lang.reflect.Method;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-
-
+import com.xiaoqu.qteamos.common.utils.EncryptionUtils;
+import com.xiaoqu.qteamos.core.plugin.manager.PluginRegistry;
+import com.xiaoqu.qteamos.core.plugin.running.PluginInfo;
+import com.xiaoqu.qteamos.core.plugin.running.PluginState;
+import com.xiaoqu.qteamos.core.plugin.manager.PluginStateManager;
 
 /**
  * 插件请求映射处理器
@@ -67,6 +69,18 @@ public class PluginRequestMappingHandlerMapping implements ApplicationContextAwa
     // 用于存储已注册的Controller映射
     private final Map<String, Set<RequestMappingInfo>> registeredMappings = new ConcurrentHashMap<>();
     
+    // 用于记录已注册的控制器类，防止重复注册，格式：className -> controllerInstance
+    private final Map<String, Object> registeredControllerClasses = new ConcurrentHashMap<>();
+    
+    // 用于记录控制器类所属的插件ID，格式：className -> pluginId
+    private final Map<String, String> controllerClassToPluginId = new ConcurrentHashMap<>();
+    
+    // 用于标记系统是否在启动阶段
+    private final AtomicBoolean systemStartupPhase = new AtomicBoolean(false);
+    
+    // 用于记录已完成批量注册的插件ID
+    private final Set<String> batchRegisteredPlugins = Collections.synchronizedSet(new HashSet<>());
+    
     /**
      * 设置应用上下文
      */
@@ -82,7 +96,7 @@ public class PluginRequestMappingHandlerMapping implements ApplicationContextAwa
     public void handleContextRefresh(ContextRefreshedEvent event) {
         // 只在Web应用上下文中进行处理
         if (event.getApplicationContext() instanceof WebApplicationContext) {
-            log.info("收到ContextRefreshedEvent事件，ApplicationContext: {}", event.getApplicationContext().getDisplayName());
+            log.info("系统启动：收到ContextRefreshedEvent事件，ApplicationContext: {}", event.getApplicationContext().getDisplayName());
             
             // 在所有Bean初始化完成后再执行注册
             try {
@@ -91,38 +105,58 @@ public class PluginRequestMappingHandlerMapping implements ApplicationContextAwa
                     event.getApplicationContext().getParent() == applicationContext ||
                     (applicationContext != null && applicationContext.equals(event.getApplicationContext().getParent()))) {
                     
+                    // 设置系统启动标志
+                    systemStartupPhase.set(true);
+                    log.info("系统启动：设置启动标志，进入批量注册阶段");
+                    
                     // 修改延迟线程部分
                     Thread pluginRegistrationThread = new Thread(() -> {
                         try {
-                            log.info("等待插件加载完成...");
+                            log.info("系统启动：等待插件加载完成...");
                             // 不使用固定时间，而是使用轮询检查插件状态
                             int attempts = 0;
-                            while (attempts < 10) {
+                            boolean pluginsFound = false;
+                            
+                            while (attempts < 10 && !pluginsFound) {
                                 Collection<PluginInfo> runningPlugins = pluginRegistry.getAllPlugins().stream()
                                     .filter(p -> p.getState() == PluginState.RUNNING)
                                     .toList();
                                     
                                 if (!runningPlugins.isEmpty()) {
-                                    log.info("发现{}个运行中的插件，开始注册控制器", runningPlugins.size());
+                                    log.info("系统启动：发现{}个运行中的插件，开始批量注册控制器", runningPlugins.size());
                                     registerAllPluginControllers();
-                                    break;
+                                    pluginsFound = true;
+                                } else {
+                                    log.info("系统启动：尚未发现运行中的插件，等待500ms后重试... (尝试 {}/10)", attempts + 1);
+                                    Thread.sleep(500);
+                                    attempts++;
                                 }
-                                
-                                log.info("尚未发现运行中的插件，等待500ms后重试...");
-                                Thread.sleep(500);
-                                attempts++;
                             }
+                            
+                            // 如果没有找到插件，也要记录日志
+                            if (!pluginsFound) {
+                                log.info("系统启动：在{}次尝试后未找到运行中的插件，跳过控制器注册", attempts);
+                            }
+                            
+                            // 关闭系统启动标志，开始接受运行时注册
+                            systemStartupPhase.set(false);
+                            log.info("系统启动：结束批量注册阶段，转为运行时注册模式");
+                            
                         } catch (Exception e) {
-                            log.error("插件Controller注册失败", e);
+                            log.error("系统启动：插件Controller注册失败", e);
+                            // 确保无论如何都关闭启动标志
+                            systemStartupPhase.set(false);
                         }
                     }, "plugin-controller-registration");
                     
                     pluginRegistrationThread.setDaemon(true);
                     pluginRegistrationThread.start();
-                    log.info("已启动插件控制器注册线程");
+                    log.info("系统启动：已启动插件控制器注册线程");
                 }
             } catch (Exception e) {
-                log.error("注册插件Controller失败", e);
+                log.error("系统启动：初始化注册过程失败", e);
+                // 确保出错时也关闭启动标志
+                systemStartupPhase.set(false);
             }
         }
     }
@@ -136,27 +170,49 @@ public class PluginRequestMappingHandlerMapping implements ApplicationContextAwa
         try {
             String pluginId = event.getPluginId();
             PluginState newState = event.getNewState();
+            PluginState oldState = event.getOldState();
             
             if (newState == PluginState.RUNNING) {
-                log.info("监听到插件[{}]状态变更为RUNNING，准备注册控制器", pluginId);
+                // 检查是否在系统启动阶段，如果是则跳过，由批量注册处理
+                if (systemStartupPhase.get()) {
+                    log.info("事件监听：系统处于启动阶段，插件[{}]将在批量注册中处理", pluginId);
+                    return;
+                }
+                
+                // 检查插件是否已在批量注册中处理过
+                if (batchRegisteredPlugins.contains(pluginId)) {
+                    log.info("事件监听：插件[{}]的控制器已在之前注册过，跳过重复注册", pluginId);
+                    return;
+                }
+                
+                // 如果先前已经是RUNNING状态，则不重复注册
+                if (oldState == PluginState.RUNNING) {
+                    log.info("事件监听：插件[{}]已经处于RUNNING状态，跳过控制器注册", pluginId);
+                    return;
+                }
+                
+                log.info("事件监听：检测到插件[{}]状态变更为RUNNING，准备注册控制器", pluginId);
                 
                 pluginRegistry.getPlugin(pluginId).ifPresent(plugin -> {
                     try {
                         registerPluginControllers(plugin);
                     } catch (Exception e) {
-                        log.error("注册插件[{}]控制器失败", pluginId, e);
+                        log.error("事件监听：注册插件[{}]控制器失败", pluginId, e);
                     }
                 });
             } else if (newState == PluginState.STOPPED || newState == PluginState.UNLOADED) {
-                log.info("监听到插件[{}]状态变更为{}，准备注销控制器", pluginId, newState);
+                log.info("事件监听：检测到插件[{}]状态变更为{}，准备注销控制器", pluginId, newState);
                 try {
                     unregisterPluginControllers(pluginId);
+                    
+                    // 从批量注册记录中移除
+                    batchRegisteredPlugins.remove(pluginId);
                 } catch (Exception e) {
-                    log.error("注销插件[{}]控制器失败", pluginId, e);
+                    log.error("事件监听：注销插件[{}]控制器失败", pluginId, e);
                 }
             }
         } catch (Exception e) {
-            log.error("处理插件状态变更事件失败", e);
+            log.error("事件监听：处理插件状态变更事件失败", e);
         }
     }
     
@@ -164,18 +220,33 @@ public class PluginRequestMappingHandlerMapping implements ApplicationContextAwa
      * 注册所有插件中的控制器
      */
     public void registerAllPluginControllers() {
+        // 清除旧的映射记录，以便重新注册
+        // 注意：这里我们只清除记录，而不是实际注销控制器，因为Spring上下文刷新后所有映射都会丢失
+        registeredMappings.clear();
+        registeredControllerClasses.clear();
+        controllerClassToPluginId.clear();
+        
+        log.info("===== 系统启动阶段：开始批量注册所有插件控制器 =====");
+        
         // 获取所有运行中的插件
         Collection<PluginInfo> plugins = pluginRegistry.getAllPlugins().stream()
                 .filter(p -> p.getState() == PluginState.RUNNING)
                 .toList();
         
-        log.info("开始注册所有插件中的Controller，共有{}个插件", plugins.size());
+        log.info("系统启动阶段：发现{}个运行中的插件需要注册控制器", plugins.size());
         
         for (PluginInfo plugin : plugins) {
             try {
-                registerPluginControllers(plugin);
+                String pluginId = plugin.getPluginId();
+                log.info("系统启动阶段：开始注册插件[{}]的控制器", pluginId);
+                
+                // 直接进行注册处理，不调用registerPluginControllers
+                registerPluginControllersInternal(plugin, true);
+                
+                // 记录已注册的插件
+                batchRegisteredPlugins.add(pluginId);
             } catch (Exception e) {
-                log.error("注册插件Controller失败: " + plugin.getPluginId(), e);
+                log.error("系统启动阶段：注册插件控制器失败: " + plugin.getPluginId(), e);
             }
         }
         
@@ -185,59 +256,97 @@ public class PluginRequestMappingHandlerMapping implements ApplicationContextAwa
                 // 使用确切的bean名称避免NoUniqueBeanDefinitionException
                 RequestMappingHandlerMapping handlerMapping = applicationContext.getBean("requestMappingHandlerMapping", RequestMappingHandlerMapping.class);
                 Map<RequestMappingInfo, HandlerMethod> handlerMethods = handlerMapping.getHandlerMethods();
-                log.info("当前系统中所有注册的RequestMapping数量: {}", handlerMethods.size());
+                log.info("系统启动阶段：当前系统中所有注册的RequestMapping数量: {}", handlerMethods.size());
                 
                 // 只打印插件相关的映射，避免日志过多
                 handlerMethods.forEach((info, method) -> {
                     if (method.getBeanType().getName().contains("plugin")) {
-                        log.info("映射: {} -> {}.{}", 
+                        log.info("系统启动阶段：映射: {} -> {}.{}", 
                                 info, method.getBeanType().getSimpleName(), method.getMethod().getName());
                     }
                 });
             } catch (Exception e) {
-                log.error("获取已注册映射失败", e);
+                log.error("系统启动阶段：获取已注册映射失败", e);
             }
         }
+        
+        log.info("===== 系统启动阶段：完成批量注册，共注册了{}个插件的控制器 =====", batchRegisteredPlugins.size());
     }
     
     /**
      * 注册单个插件的控制器
+     * 由onPluginStateChange触发，用于运行时动态注册新的插件控制器
      *
      * @param plugin 插件信息
      */
     public void registerPluginControllers(PluginInfo plugin) {
         String pluginId = plugin.getPluginId();
-        log.info("开始注册插件[{}]的Controller", pluginId);
+        log.info("运行时注册：开始处理插件[{}]的控制器", pluginId);
+        
+        // 调用内部实现方法
+        registerPluginControllersInternal(plugin, false);
+    }
+    
+    /**
+     * 注册插件控制器的内部实现
+     * 
+     * @param plugin 插件信息
+     * @param isSystemStartup 是否是系统启动时批量注册
+     */
+    private void registerPluginControllersInternal(PluginInfo plugin, boolean isSystemStartup) {
+        String pluginId = plugin.getPluginId();
+        String logPrefix = isSystemStartup ? "系统启动阶段" : "运行时注册";
         
         try {
+            // 检查是否已经注册过该插件的控制器
+            boolean alreadyRegistered = false;
+            for (String key : registeredMappings.keySet()) {
+                if (key.startsWith(pluginId + ":")) {
+                    alreadyRegistered = true;
+                    break;
+                }
+            }
+            
+            if (alreadyRegistered) {
+                log.info("{}：插件[{}]的控制器已经注册，跳过注册过程", logPrefix, pluginId);
+                return;
+            }
+            
             // 通过名称获取RequestMappingHandlerMapping
             RequestMappingHandlerMapping handlerMapping = applicationContext.getBean("requestMappingHandlerMapping", RequestMappingHandlerMapping.class);
 
             if (handlerMapping == null) {
-                log.error("无法获取RequestMappingHandlerMapping bean，插件控制器无法注册！");
+                log.error("{}：无法获取RequestMappingHandlerMapping bean，插件控制器无法注册！", logPrefix);
                 return;
             }
 
             // 获取插件类加载器
             ClassLoader pluginClassLoader = plugin.getClassLoader();
             if (pluginClassLoader == null) {
-                log.error("插件类加载器为空: {}", pluginId);
+                log.error("{}：插件类加载器为空: {}", logPrefix, pluginId);
                 return;
             }
             
             // 在插件中查找所有的控制器类
             List<Class<?>> controllerClasses = findControllerClasses(plugin);
             
-            log.info("在插件[{}]中找到{}个控制器类", pluginId, controllerClasses.size());
+            log.info("{}：在插件[{}]中找到{}个控制器类", logPrefix, pluginId, controllerClasses.size());
             
             // 注册每个控制器
             for (Class<?> controllerClass : controllerClasses) {
                 registerControllerClass(handlerMapping, pluginId, controllerClass);
             }
             
-            log.info("插件[{}]的Controller注册完成，共{}个", pluginId, controllerClasses.size());
+            // 仅在运行时注册时添加到批量注册记录中
+            // 系统启动时的批量注册由registerAllPluginControllers负责记录
+            if (!isSystemStartup) {
+                // 将插件ID添加到批量注册记录中，避免重复注册
+                batchRegisteredPlugins.add(pluginId);
+            }
+            
+            log.info("{}：插件[{}]的Controller注册完成，共{}个", logPrefix, pluginId, controllerClasses.size());
         } catch (Exception e) {
-            log.error("注册插件Controller时发生异常: " + pluginId, e);
+            log.error("{}：注册插件[{}]控制器时发生异常", logPrefix, plugin.getPluginId(), e);
         }
     }
     
@@ -304,13 +413,13 @@ public class PluginRequestMappingHandlerMapping implements ApplicationContextAwa
             }
             
             // 2. 如果插件提供了扫描方法，使用它来获取控制器
-            if (plugin.getPluginInstance() != null) {
+            if (plugin.getInstance() != null) {
                 try {
-                    Method getControllersMethod = plugin.getPluginInstance().getClass()
+                    Method getControllersMethod = plugin.getInstance().getClass()
                             .getDeclaredMethod("getControllerClasses");
                     if (getControllersMethod != null) {
                         getControllersMethod.setAccessible(true);
-                        Object result = getControllersMethod.invoke(plugin.getPluginInstance());
+                        Object result = getControllersMethod.invoke(plugin.getInstance());
                         if (result instanceof List) {
                             List<?> controllers = (List<?>) result;
                             for (Object controller : controllers) {
@@ -412,13 +521,13 @@ public class PluginRequestMappingHandlerMapping implements ApplicationContextAwa
             }
             
             // 3. 如果插件有实现getControllerPackages方法
-            if (plugin.getPluginInstance() != null) {
+            if (plugin.getInstance() != null) {
                 try {
-                    Method getPackagesMethod = plugin.getPluginInstance().getClass()
+                    Method getPackagesMethod = plugin.getInstance().getClass()
                             .getDeclaredMethod("getControllerPackages");
                     if (getPackagesMethod != null) {
                         getPackagesMethod.setAccessible(true);
-                        Object result = getPackagesMethod.invoke(plugin.getPluginInstance());
+                        Object result = getPackagesMethod.invoke(plugin.getInstance());
                         if (result instanceof List) {
                             List<String> packages = (List<String>) result;
                             for (String pkg : packages) {
@@ -459,8 +568,26 @@ public class PluginRequestMappingHandlerMapping implements ApplicationContextAwa
                 return;
             }
             
+            // 检查该控制器类是否已经注册过
+            String className = controllerClass.getName();
+            if (registeredControllerClasses.containsKey(className)) {
+                log.info("控制器类已注册，使用已存在的实例: {}", className);
+                
+                // 检查是否由同一个插件注册
+                String registeredPluginId = controllerClassToPluginId.get(className);
+                if (!pluginId.equals(registeredPluginId)) {
+                    log.warn("控制器类{}已被插件{}注册，当前插件{}尝试重复注册", 
+                             className, registeredPluginId, pluginId);
+                }
+                return;
+            }
+            
             // 创建控制器实例
             Object controllerInstance = createControllerInstance(controllerClass);
+            
+            // 记录控制器类实例
+            registeredControllerClasses.put(className, controllerInstance);
+            controllerClassToPluginId.put(className, pluginId);
             
             // 获取所有带有@RequestMapping的方法
             Method[] methods = controllerClass.getMethods();
@@ -887,6 +1014,36 @@ public class PluginRequestMappingHandlerMapping implements ApplicationContextAwa
                 return;
             }
             
+            // 检查是否已经注册过该映射，避免重复注册
+            Map<RequestMappingInfo, HandlerMethod> existingMappings = handlerMapping.getHandlerMethods();
+            boolean alreadyRegistered = false;
+            
+            for (Map.Entry<RequestMappingInfo, HandlerMethod> entry : existingMappings.entrySet()) {
+                RequestMappingInfo existingInfo = entry.getKey();
+                HandlerMethod existingMethod = entry.getValue();
+                
+                // 检查是否有路径重叠
+                if (existingInfo.getPatternsCondition() != null && 
+                    mappingInfo.getPatternsCondition() != null) {
+                    
+                    Set<String> existingPatterns = existingInfo.getPatternsCondition().getPatterns();
+                    Set<String> newPatterns = mappingInfo.getPatternsCondition().getPatterns();
+                    
+                    if (!Collections.disjoint(existingPatterns, newPatterns) && 
+                        existingMethod.getMethod().equals(method)) {
+                        log.warn("发现重复映射，跳过注册: {} -> {}.{}", 
+                                mappingInfo, handler.getClass().getSimpleName(), method.getName());
+                        alreadyRegistered = true;
+                        break;
+                    }
+                }
+            }
+            
+            // 如果已经注册过，直接返回
+            if (alreadyRegistered) {
+                return;
+            }
+            
             log.info("注册插件请求处理器: {} -> {}.{}", 
                     mappingInfo, handler.getClass().getName(), method.getName());
             
@@ -932,6 +1089,13 @@ public class PluginRequestMappingHandlerMapping implements ApplicationContextAwa
                     }
                     
                     keysToRemove.add(key);
+                    
+                    // 提取控制器类名，从pluginId:className格式中提取className
+                    String className = key.substring(key.indexOf(":") + 1);
+                    
+                    // 移除控制器类记录
+                    registeredControllerClasses.remove(className);
+                    controllerClassToPluginId.remove(className);
                 }
             }
             

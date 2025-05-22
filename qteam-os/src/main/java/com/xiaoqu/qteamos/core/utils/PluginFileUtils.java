@@ -71,6 +71,9 @@ public class PluginFileUtils {
             Yaml yaml = new Yaml();
             Map<String, Object> map = yaml.load(is);
             
+            // 处理元数据
+            Map<String, Object> metadata = (Map<String, Object>) map.get("metadata");
+            
             // 使用Builder模式创建描述符对象
             return PluginDescriptor.builder()
                 .pluginId((String) map.get("pluginId"))
@@ -82,6 +85,7 @@ public class PluginFileUtils {
                 .type((String) map.getOrDefault("type", "normal"))
                 .trust((String) map.getOrDefault("trust", "untrusted"))
                 .requiredSystemVersion((String) map.getOrDefault("requiredSystemVersion", "1.0.0"))
+                .metadata(metadata)
                 .build();
         } catch (Exception e) {
             log.error("解析YAML内容失败", e);

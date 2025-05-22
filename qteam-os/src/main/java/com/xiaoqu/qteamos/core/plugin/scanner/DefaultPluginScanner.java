@@ -54,6 +54,21 @@ public class DefaultPluginScanner implements PluginScanner {
     @Value("${plugin.storage-path:./plugins}")
     private String pluginDir;
     
+    @Value("${plugin.dev-dir:./plugins-dev}")
+    private String pluginDevDir;
+    
+    // 插件目录是否使用绝对路径
+    @Value("${plugin.use-absolute-path:false}")
+    private boolean useAbsolutePath;
+    
+    // 是否包含开发目录
+    @Value("${plugin.include-dev-dir:true}")
+    private boolean includeDevDir;
+    
+    // 自定义额外插件目录
+    @Value("${plugin.additional-dirs:}")
+    private String additionalDirs;
+    
     @Value("${plugin.scan-interval:300000}")
     private long scanInterval;
     
@@ -77,9 +92,26 @@ public class DefaultPluginScanner implements PluginScanner {
      */
     @PostConstruct
     public void init() {
-        if (autoDiscoverEnabled) {
-            startScheduledScanning();
+        // 自动识别单位：如果值小于1000，假定单位是秒而非毫秒
+        if (scanInterval > 0 && scanInterval < 1000) {
+            log.warn("配置的扫描间隔 {} 可能是以秒为单位，自动转换为毫秒: {}", 
+                    scanInterval, scanInterval * 1000);
+            scanInterval = scanInterval * 1000;
         }
+        
+        // 确保扫描间隔在合理范围内（至少5秒，避免过于频繁扫描）
+        if (scanInterval < 5000) {
+            log.warn("配置的扫描间隔 {}ms 过小，自动调整为5000ms", scanInterval);
+            scanInterval = 5000;
+        }
+        
+        // 初始化时输出路径信息，便于调试
+        log.info("插件扫描器初始化，扫描路径: {}，间隔: {}ms", pluginDir, scanInterval);
+        
+        // 不在初始化时自动启动扫描，让PluginSystemNew控制扫描时机
+        // if (autoDiscoverEnabled) {
+        //     startScheduledScanning();
+        // }
     }
     
     /**
@@ -150,23 +182,42 @@ public class DefaultPluginScanner implements PluginScanner {
      */
     private PluginCandidate createCandidate(File file) {
         CandidateType type;
+        String dirName = file.getName();
+        File candidateJar = null;
         
         if (file.isDirectory()) {
-            // 检查目录中是否包含plugin.jar或有效的插件结构
-            File[] subFiles = file.listFiles();
-            if (subFiles == null || subFiles.length == 0) {
-                return null;
-            }
+            // 检查目录中是否包含plugin.yml文件
+            File pluginYmlFile = new File(file, "plugin.yml");
+            boolean hasPluginYml = pluginYmlFile.exists() && pluginYmlFile.isFile();
             
-            boolean hasPluginJar = false;
-            for (File subFile : subFiles) {
-                if (subFile.getName().endsWith(".jar")) {
-                    hasPluginJar = true;
-                    break;
+            // 检查目录中是否包含JAR文件
+            File[] subFiles = file.listFiles();
+            boolean hasJarFile = false;
+            
+            if (subFiles != null) {
+                for (File subFile : subFiles) {
+                    String fileName = subFile.getName();
+                    if (fileName.endsWith(".jar")) {
+                        hasJarFile = true;
+                        
+                        // 寻找与目录同名的JAR作为候选
+                        if (fileName.equals(dirName + ".jar") || 
+                            fileName.equals("plugin.jar") || 
+                            fileName.startsWith(dirName + "-")) {
+                            candidateJar = subFile;
+                            break;
+                        } else if (candidateJar == null) {
+                            // 记录第一个找到的JAR作为备选
+                            candidateJar = subFile;
+                        }
+                    }
                 }
             }
             
-            if (!hasPluginJar) {
+            // 必须至少有plugin.yml文件或JAR文件之一
+            if (!hasPluginYml && !hasJarFile) {
+                log.debug("目录不是有效的插件: {}, hasPluginYml={}, hasJarFile={}", 
+                          file.getAbsolutePath(), hasPluginYml, hasJarFile);
                 return null;
             }
             
@@ -185,29 +236,43 @@ public class DefaultPluginScanner implements PluginScanner {
         // 尝试解析插件ID
         try {
             if (type == CandidateType.JAR_FILE) {
+                // 直接从JAR文件加载描述符
                 PluginDescriptor descriptor = descriptorLoader.loadFromJar(file);
                 if (descriptor != null) {
                     candidate.setPluginId(descriptor.getPluginId());
                     candidate.setValidated(true);
+                    log.debug("从JAR文件加载到插件描述符: {}, 插件ID: {}", 
+                             file.getName(), descriptor.getPluginId());
                 }
             } else {
-                // 对于目录，尝试查找主JAR文件并解析
-                File[] subFiles = file.listFiles();
-                if (subFiles != null) {
-                    for (File subFile : subFiles) {
-                        if (subFile.getName().endsWith(".jar")) {
-                            PluginDescriptor descriptor = descriptorLoader.loadFromJar(subFile);
-                            if (descriptor != null) {
-                                candidate.setPluginId(descriptor.getPluginId());
-                                candidate.setValidated(true);
-                                break;
-                            }
-                        }
+                // 目录类型插件处理
+                
+                // 优先尝试从plugin.yml文件加载
+                File pluginYmlFile = new File(file, "plugin.yml");
+                if (pluginYmlFile.exists() && pluginYmlFile.isFile()) {
+                    PluginDescriptor descriptor = descriptorLoader.loadFromFile(pluginYmlFile);
+                    if (descriptor != null) {
+                        candidate.setPluginId(descriptor.getPluginId());
+                        candidate.setValidated(true);
+                        log.debug("从plugin.yml文件加载到插件描述符: {}, 插件ID: {}", 
+                                 pluginYmlFile.getName(), descriptor.getPluginId());
+                        return candidate;
+                    }
+                }
+                
+                // 如果从plugin.yml加载失败，尝试从JAR文件加载
+                if (candidateJar != null) {
+                    PluginDescriptor descriptor = descriptorLoader.loadFromJar(candidateJar);
+                    if (descriptor != null) {
+                        candidate.setPluginId(descriptor.getPluginId());
+                        candidate.setValidated(true);
+                        log.debug("从目录中的JAR文件加载到插件描述符: {}, 插件ID: {}", 
+                                 candidateJar.getName(), descriptor.getPluginId());
                     }
                 }
             }
         } catch (Exception e) {
-            log.warn("解析插件描述符失败: {}", file.getAbsolutePath(), e);
+            log.error("加载插件描述符失败: {}", file.getAbsolutePath(), e);
         }
         
         return candidate;
@@ -220,7 +285,11 @@ public class DefaultPluginScanner implements PluginScanner {
             return;
         }
         
-        log.info("启动定期插件扫描，间隔{}毫秒", scanInterval);
+        if (scanInterval < 5000) {
+            log.warn("扫描间隔 {}ms 过小，这可能会导致系统性能问题", scanInterval);
+        }
+        
+        log.info("启动定期插件扫描，间隔{}毫秒（{}秒）", scanInterval, scanInterval / 1000);
         scheduledExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "plugin-scanner");
             t.setDaemon(true);
@@ -255,13 +324,80 @@ public class DefaultPluginScanner implements PluginScanner {
     @Override
     public int scanOnce() {
         log.debug("执行一次插件扫描");
+        int totalCandidates = 0;
+        
         try {
-            Path dirPath = new File(pluginDir).toPath();
-            List<PluginCandidate> candidates = scanPlugins(dirPath);
-            return candidates.size();
+            // 扫描主插件目录
+            File mainPluginDir = resolvePath(pluginDir);
+            if (mainPluginDir.exists()) {
+                log.debug("扫描插件目录: {}", mainPluginDir.getAbsolutePath());
+                List<PluginCandidate> candidates = scanPlugins(mainPluginDir.toPath());
+                totalCandidates += candidates.size();
+            } else {
+                log.warn("插件目录不存在: {}", mainPluginDir.getAbsolutePath());
+            }
+            
+            // 扫描开发插件目录（如果配置了包含开发目录）
+            if (includeDevDir && pluginDevDir != null && !pluginDevDir.isEmpty()) {
+                File devPluginDir = resolvePath(pluginDevDir);
+                if (devPluginDir.exists()) {
+                    log.debug("扫描开发插件目录: {}", devPluginDir.getAbsolutePath());
+                    List<PluginCandidate> candidates = scanPlugins(devPluginDir.toPath());
+                    totalCandidates += candidates.size();
+                } else {
+                    log.warn("开发插件目录不存在: {}", devPluginDir.getAbsolutePath());
+                }
+            }
+            
+            // 扫描额外的插件目录（如果有配置）
+            if (additionalDirs != null && !additionalDirs.isEmpty()) {
+                String[] dirs = additionalDirs.split(",");
+                for (String dir : dirs) {
+                    dir = dir.trim();
+                    if (!dir.isEmpty()) {
+                        File additionalDir = resolvePath(dir);
+                        if (additionalDir.exists()) {
+                            log.debug("扫描额外插件目录: {}", additionalDir.getAbsolutePath());
+                            List<PluginCandidate> candidates = scanPlugins(additionalDir.toPath());
+                            totalCandidates += candidates.size();
+                        } else {
+                            log.warn("额外插件目录不存在: {}", additionalDir.getAbsolutePath());
+                        }
+                    }
+                }
+            }
+            
+            return totalCandidates;
         } catch (Exception e) {
             log.error("插件扫描出错", e);
             return 0;
         }
+    }
+    
+    /**
+     * 解析路径为文件对象，处理相对路径和绝对路径
+     *
+     * @param path 路径字符串
+     * @return 解析后的文件对象
+     */
+    private File resolvePath(String path) {
+        if (path == null || path.isEmpty()) {
+            return new File(".");
+        }
+        
+        File file;
+        if (path.startsWith("/") || path.contains(":")) {
+            // 已经是绝对路径
+            file = new File(path);
+        } else if (useAbsolutePath) {
+            // 转换为绝对路径（相对于用户目录）
+            String userDir = System.getProperty("user.dir");
+            file = new File(userDir, path);
+        } else {
+            // 使用相对路径
+            file = new File(path);
+        }
+        
+        return file;
     }
 } 

@@ -45,6 +45,11 @@ public enum PluginState {
     STOPPED("已停止"),
     
     /**
+     * 正在卸载：插件正在从内存中卸载
+     */
+    UNLOADING("正在卸载"),
+    
+    /**
      * 已卸载：插件已从内存中卸载
      */
     UNLOADED("已卸载"),

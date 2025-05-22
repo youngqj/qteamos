@@ -215,36 +215,6 @@ SystemInitializer启动协调器 - 作为基础架构组件，它协调整个启
 
 
 
-2025-05-02 16:22:55.644 [main] ERROR o.s.boot.SpringApplication - Application run failed
-org.springframework.beans.factory.BeanDefinitionStoreException: Invalid bean definition with name 'sysPluginConfigMapper' defined in URL [jar:nested:/Users/yangqijun/dev/QTeam/qteamos/target/qteamos-0.0.1-SNAPSHOT.jar/!BOOT-INF/classes/!/com/xiaoqu/qteamos/core/pluginInterface/model/mapper/SysPluginConfigMapper.class]: Invalid value type for attribute 'factoryBeanObjectType': java.lang.String
-        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.getTypeForFactoryBean(AbstractAutowireCapableBeanFactory.java:858)
-        at org.springframework.beans.factory.support.AbstractBeanFactory.getType(AbstractBeanFactory.java:745)
-        at org.springframework.beans.factory.support.DefaultListableBeanFactory.findAnnotationOnBean(DefaultListableBeanFactory.java:791)
-        at org.springframework.boot.sql.init.dependency.AnnotationDependsOnDatabaseInitializationDetector.detect(AnnotationDependsOnDatabaseInitializationDetector.java:36)
-        at org.springframework.boot.sql.init.dependency.DatabaseInitializationDependencyConfigurer$DependsOnDatabaseInitializationPostProcessor.detectDependsOnInitializationBeanNames(DatabaseInitializationDependencyConfigurer.java:152)
-        at org.springframework.boot.sql.init.dependency.DatabaseInitializationDependencyConfigurer$DependsOnDatabaseInitializationPostProcessor.postProcessBeanFactory(DatabaseInitializationDependencyConfigurer.java:115)
-        at org.springframework.context.support.PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(PostProcessorRegistrationDelegate.java:363)
-        at org.springframework.context.support.PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(PostProcessorRegistrationDelegate.java:197)
-        at org.springframework.context.support.AbstractApplicationContext.invokeBeanFactoryPostProcessors(AbstractApplicationContext.java:791)
-        at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:609)
-        at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:146)
-        at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:752)
-        at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:439)
-        at org.springframework.boot.SpringApplication.run(SpringApplication.java:318)
-        at org.springframework.boot.SpringApplication.run(SpringApplication.java:1361)
-        at org.springframework.boot.SpringApplication.run(SpringApplication.java:1350)
-        at com.xiaoqu.qteamos.QTeamOSApplication.main(QteamosApplication.java:26)
-        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
-        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
-        at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
-        at java.base/java.lang.reflect.Method.invoke(Method.java:568)
-        at org.springframework.boot.loader.launch.Launcher.launch(Launcher.java:102)
-        at org.springframework.boot.loader.launch.Launcher.launch(Launcher.java:64)
-        at org.springframework.boot.loader.launch.JarLauncher.main(JarLauncher.java:40)
-yangqijun@yangqijundeMacBook-Pro qteamos % 
-
-
-
 
 
 

@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.Map;
+import java.util.HashMap;
 
 /**
  * 插件状态管理器
@@ -183,19 +185,24 @@ public void recordFailure(String pluginId, String errorMessage) {
     }
     
     /**
-     * 插件状态变化事件
+     * 插件状态变更事件
      */
-    public static class PluginStateChangeEvent implements Event {
+    public static class PluginStateChangeEvent extends com.xiaoqu.qteamos.core.plugin.event.Event {
         private final String pluginId;
         private final PluginState oldState;
         private final PluginState newState;
-        private final long timestamp;
         
         public PluginStateChangeEvent(String pluginId, PluginState oldState, PluginState newState) {
+            super("plugin", "state_change");
             this.pluginId = pluginId;
             this.oldState = oldState;
             this.newState = newState;
-            this.timestamp = System.currentTimeMillis();
+            // 将状态信息放入data字段
+            Map<String, Object> data = new HashMap<>();
+            data.put("pluginId", pluginId);
+            data.put("oldState", oldState);
+            data.put("newState", newState);
+            setData(data);
         }
         
         public String getPluginId() {
@@ -208,26 +215,6 @@ public void recordFailure(String pluginId, String errorMessage) {
         
         public PluginState getNewState() {
             return newState;
-        }
-        
-        @Override
-        public long getTimestamp() {
-            return timestamp;
-        }
-        
-        @Override
-        public String getTopic() {
-            return "plugin";
-        }
-        
-        @Override
-        public String getType() {
-            return "state_change";
-        }
-        
-        @Override
-        public String getSource() {
-            return pluginId;
         }
     }
 } 

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.xiaoqu.qteamos.core.pluginInterface.model.mapper.SysPluginInfoMapper">
+<mapper namespace="com.xiaoqu.qteamos.core.plugin.model.mapper.SysPluginInfoMapper">
 
     <!-- 通用映射结果集 -->
     <resultMap id="BaseResultMap" type="com.xiaoqu.qteamos.core.plugin.model.entity.SysPluginInfo">
@@ -19,6 +19,8 @@
         <result column="license" property="license" />
         <result column="category" property="category" />
         <result column="website" property="website" />
+        <result column="jar_file" property="jarPath" />
+        <result column="have_dependency" property="haveDependency" />
         <result column="create_time" property="createTime" />
         <result column="update_time" property="updateTime" />
         <result column="create_by" property="createBy" />
@@ -40,6 +42,12 @@
         <result column="trust" property="trust" />
         <result column="required_system_version" property="requiredSystemVersion" />
         <result column="priority" property="priority" />
+        <result column="provider" property="provider" />
+        <result column="license" property="license" />
+        <result column="category" property="category" />
+        <result column="website" property="website" />
+        <result column="jar_file" property="jar_file" />
+        <result column="have_dependency" property="haveDependency" />
         <result column="status" property="status" />
         <result column="enabled" property="enabled" />
         <result column="error_message" property="errorMessage" />

@@ -67,7 +67,7 @@ public class SysPluginInfo extends BaseEntity {
     private String type;
 
     /**
-     * 信任级别：trusted-受信任的，official-官方的
+     * 信任级别：trust-受信任的，untrusted-不受信任的
      */
     @TableField("trust")
     private String trust;
@@ -107,4 +107,16 @@ public class SysPluginInfo extends BaseEntity {
      */
     @TableField("website")
     private String website;
+    
+    /**
+     * 插件JAR文件路径
+     */
+    @TableField("jar_file")
+    private String jarPath;
+
+    /**
+     * 是否有依赖，默认0没有
+     */
+    @TableField("have_dependency")
+    private Integer haveDependency;
 } 

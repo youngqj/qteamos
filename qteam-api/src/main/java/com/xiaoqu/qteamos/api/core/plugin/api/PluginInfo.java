@@ -48,6 +48,11 @@ public class PluginInfo {
     private String author;
     
     /**
+     * 插件主类
+     */
+    private String mainClass;
+    
+    /**
      * 插件类型
      */
     private String type;
@@ -86,6 +91,16 @@ public class PluginInfo {
      * 插件扩展点
      */
     private List<ExtensionPointInfo> extensionPoints;
+    
+    /**
+     * 插件JAR文件路径
+     */
+    private String jarPath;
+    
+    /**
+     * 插件是否有依赖
+     */
+    private Integer haveDependency;
     
     /**
      * 插件元数据

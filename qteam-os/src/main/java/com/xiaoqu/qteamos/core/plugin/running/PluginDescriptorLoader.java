@@ -10,10 +10,10 @@
  */
 package com.xiaoqu.qteamos.core.plugin.running;
 
-
 import com.xiaoqu.qteamos.common.utils.VersionUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Component;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.jar.JarEntry;
@@ -35,6 +36,7 @@ import java.util.jar.JarFile;
  * @version 1.0.0
  */
 @Slf4j
+@Component
 public class PluginDescriptorLoader {
     
     /**
@@ -147,9 +149,6 @@ public class PluginDescriptorLoader {
     
     /**
      * 将YAML解析结果转换为PluginDescriptor对象
-     * 支持两种格式:
-     * 1. 老格式: main.pluginId, main.name, main.version, main.mainClass
-     * 2. 新格式: pluginId, name, version, main
      * 
      * @param map YAML解析结果
      * @return 插件描述符
@@ -157,125 +156,67 @@ public class PluginDescriptorLoader {
      */
     @SuppressWarnings("unchecked")
     private PluginDescriptor convertToDescriptor(Map<String, Object> map) throws PluginException {
-        // 判断是老格式还是新格式
-        boolean isLegacyFormat = map.containsKey("main") && map.get("main") instanceof Map;
-        
         // 创建描述符构建器
         PluginDescriptor.PluginDescriptorBuilder builder = PluginDescriptor.builder();
         
-        if (isLegacyFormat) {
-            // 解析老格式
-            Map<String, Object> mainInfo = (Map<String, Object>) map.get("main");
-            builder.pluginId((String) mainInfo.get("pluginId"))
-                   .name((String) mainInfo.get("name"))
-                   .version((String) mainInfo.get("version"))
-                   .mainClass((String) mainInfo.get("mainClass"))
-                   .description((String) mainInfo.getOrDefault("description", ""))
-                   .author((String) mainInfo.getOrDefault("author", ""))
-                   .type((String) mainInfo.getOrDefault("pluginType", "normal"))
-                   .trust((String) mainInfo.getOrDefault("sourceType", "trusted"))
-                   .enabled((Boolean) mainInfo.getOrDefault("enabled", true));
-                   
-            // 系统兼容性
-            if (map.get("update") instanceof Map<?, ?> updateInfo) {
-                if (updateInfo.get("compatibility") instanceof Map<?, ?> compatibilityInfo) {
-                    String minVersion = compatibilityInfo.containsKey("minSystemVersion") ? 
-                        (String) compatibilityInfo.get("minSystemVersion") : "1.0.0";
-                    builder.requiredSystemVersion(minVersion);
+        // 解析新格式
+        builder.pluginId((String) map.get("pluginId"))
+                .name((String) map.get("name"))
+                .version((String) map.get("version"))
+                .mainClass((String) map.get("mainClass"))
+                .description((String) map.getOrDefault("description", ""))
+                .author((String) map.getOrDefault("author", ""))
+                .type((String) map.getOrDefault("type", "normal"))
+                .trust((String) map.getOrDefault("trust", "trust"))
+                .enabled((Boolean) map.getOrDefault("enabled", true))
+                .requiredSystemVersion((String) map.getOrDefault("requiredSystemVersion", "1.0.0"));
+
+        // 处理权限
+        if (map.get("permissions") instanceof List<?> permissionsList) {
+            builder.permissions(permissionsList.stream()
+                    .filter(String.class::isInstance)
+                    .map(String.class::cast)
+                    .toList());
+        }
+
+        // 处理生命周期钩子
+        if (map.get("lifecycle") instanceof Map<?, ?> lifecycleMap) {
+            builder.lifecycle((Map<String, String>) lifecycleMap);
+        }
+
+        // 处理扩展点
+        if (map.get("extensionPoints") instanceof List<?> extensionPointList) {
+            List<ExtensionPoint> extensionPoints = ((List<Map<String, Object>>) extensionPointList).stream()
+                    .map(this::convertToExtensionPoint)
+                    .filter(ExtensionPoint::isValid)
+                    .toList();
+            builder.extensionPoints(extensionPoints);
+        }
+
+        // 处理资源文件
+        if (map.get("resources") instanceof List<?> resourceList) {
+            List<PluginResource> resources = ((List<Map<String, Object>>) resourceList).stream()
+                    .map(this::convertToResource)
+                    .filter(PluginResource::isValid)
+                    .toList();
+            builder.resources(resources);
+        }
+
+        // 处理元数据
+        if (map.get("metadata") instanceof Map<?, ?> metadataMap) {
+            builder.metadata((Map<String, Object>) metadataMap);
+        }
+        
+        // 处理更新信息
+        if (map.get("update") instanceof Map<?, ?> updateInfo) {
+            Map<String, String> updateInfoMap = new HashMap<>();
+            // 转换更新信息为Map<String, String>
+            for (Map.Entry<?, ?> entry : updateInfo.entrySet()) {
+                if (entry.getKey() instanceof String && entry.getValue() != null) {
+                    updateInfoMap.put((String) entry.getKey(), entry.getValue().toString());
                 }
-                
-                // 存储更新信息
-                builder.updateInfo((Map<String, Object>) updateInfo);
             }
-            
-            // 处理权限
-            if (map.get("permissions") instanceof List<?> permissionsList) {
-                builder.permissions(permissionsList.stream()
-                        .filter(String.class::isInstance)
-                        .map(String.class::cast)
-                        .toList());
-            }
-            
-            // 处理生命周期钩子
-            if (map.get("lifecycle") instanceof Map<?, ?> lifecycleMap) {
-                builder.lifecycle((Map<String, String>) lifecycleMap);
-            }
-            
-            // 处理扩展点
-            if (map.get("extensionPoints") instanceof List<?> extensionPointList) {
-                List<ExtensionPoint> extensionPoints = ((List<Map<String, Object>>) extensionPointList).stream()
-                        .map(this::convertToExtensionPoint)
-                        .filter(ExtensionPoint::isValid)
-                        .toList();
-                builder.extensionPoints(extensionPoints);
-            }
-            
-            // 处理资源文件
-            if (map.get("resources") instanceof List<?> resourceList) {
-                List<PluginResource> resources = ((List<Map<String, Object>>) resourceList).stream()
-                        .map(this::convertToResource)
-                        .filter(PluginResource::isValid)
-                        .toList();
-                builder.resources(resources);
-            }
-            
-            // 处理元数据
-            if (map.get("metadata") instanceof Map<?, ?> metadataMap) {
-                builder.metadata((Map<String, Object>) metadataMap);
-            }
-        } else {
-            // 解析新格式
-            builder.pluginId((String) map.get("pluginId"))
-                   .name((String) map.get("name"))
-                   .version((String) map.get("version"))
-                   .mainClass((String) map.get("main"))
-                   .description((String) map.getOrDefault("description", ""))
-                   .author((String) map.getOrDefault("author", ""))
-                   .type((String) map.getOrDefault("type", "normal"))
-                   .trust((String) map.getOrDefault("trust", "trusted"))
-                   .enabled((Boolean) map.getOrDefault("enabled", true))
-                   .requiredSystemVersion((String) map.getOrDefault("requiredSystemVersion", "1.0.0"));
-                   
-            // 处理权限
-            if (map.get("permissions") instanceof List<?> permissionsList) {
-                builder.permissions(permissionsList.stream()
-                        .filter(String.class::isInstance)
-                        .map(String.class::cast)
-                        .toList());
-            }
-            
-            // 处理生命周期钩子
-            if (map.get("lifecycle") instanceof Map<?, ?> lifecycleMap) {
-                builder.lifecycle((Map<String, String>) lifecycleMap);
-            }
-            
-            // 处理扩展点
-            if (map.get("extensionPoints") instanceof List<?> extensionPointList) {
-                List<ExtensionPoint> extensionPoints = ((List<Map<String, Object>>) extensionPointList).stream()
-                        .map(this::convertToExtensionPoint)
-                        .filter(ExtensionPoint::isValid)
-                        .toList();
-                builder.extensionPoints(extensionPoints);
-            }
-            
-            // 处理资源文件
-            if (map.get("resources") instanceof List<?> resourceList) {
-                List<PluginResource> resources = ((List<Map<String, Object>>) resourceList).stream()
-                        .map(this::convertToResource)
-                        .filter(PluginResource::isValid)
-                        .toList();
-                builder.resources(resources);
-            }
-            
-            // 处理元数据
-            if (map.get("metadata") instanceof Map<?, ?> metadataMap) {
-                builder.metadata((Map<String, Object>) metadataMap);
-            }
-            
-            // 处理更新信息
-            if (map.get("update") instanceof Map<?, ?> updateInfo) {
-                builder.updateInfo((Map<String, Object>) updateInfo);
-            }
+            builder.updateInfo(updateInfoMap);
         }
         
         // 验证必填字段
@@ -291,8 +232,7 @@ public class PluginDescriptorLoader {
                 }
             }
         } else if (depsObj instanceof Map<?, ?> depsMap) {
-            // 老格式中的 dependencies: {} 情况，忽略
-            // 或者解析成key-value格式的依赖
+            // 解析成key-value格式的依赖
             for (Map.Entry<?, ?> entry : depsMap.entrySet()) {
                 if (entry.getKey() instanceof String && entry.getValue() instanceof Map<?, ?> depInfo) {
                     String pluginId = (String) entry.getKey();
@@ -507,5 +447,32 @@ public class PluginDescriptorLoader {
         }
         
         return builder.build();
+    }
+    
+    /**
+     * 将对象转换为整数，如果转换失败则返回默认值
+     * 
+     * @param obj 要转换的对象
+     * @param defaultValue 默认值
+     * @return 转换后的整数或默认值
+     */
+    private Integer parseIntOrDefault(Object obj, Integer defaultValue) {
+        if (obj == null) {
+            return defaultValue;
+        }
+        
+        if (obj instanceof Integer) {
+            return (Integer) obj;
+        }
+        
+        if (obj instanceof String) {
+            try {
+                return Integer.parseInt((String) obj);
+            } catch (NumberFormatException e) {
+                return defaultValue;
+            }
+        }
+        
+        return defaultValue;
     }
 } 

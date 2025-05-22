@@ -14,6 +14,7 @@ package com.xiaoqu.qteamos.api.core.plugin.api;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.function.Predicate;
 
 /**
  * 插件文件监控接口
@@ -31,6 +32,14 @@ public interface PluginFileWatcher {
      * @param directory 要监控的目录
      */
     void startWatching(Path directory);
+    
+    /**
+     * 开始监控指定目录，并应用过滤器
+     *
+     * @param directory 要监控的目录
+     * @param filter 路径过滤器，用于过滤不需要处理的文件
+     */
+    void startWatchingWithFilter(Path directory, Predicate<Path> filter);
     
     /**
      * 停止目录监控

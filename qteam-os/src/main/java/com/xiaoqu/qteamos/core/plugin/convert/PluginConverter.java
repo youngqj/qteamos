@@ -54,7 +54,7 @@ public class PluginConverter {
                 .description(descriptor.getDescription())
                 .author(descriptor.getAuthor())
                 .type(descriptor.getType())
-                .trust(descriptor.getTrust())
+                .trust(descriptor.getTrust().toString())
                 .state(pluginInfo.getState())
                 .enabled(pluginInfo.isEnabled())
                 .loadTime(pluginInfo.getLoadTime())

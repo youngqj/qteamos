@@ -238,7 +238,7 @@ public class PluginUpdateService {
         PluginInfo currentPlugin = optCurrentPlugin.get();
         PluginInfo newPlugin = PluginInfo.builder()
                 .descriptor(currentPlugin.getDescriptor())
-                .pluginFile(currentPlugin.getPluginFile())
+                .file(currentPlugin.getPluginFile())
                 .jarPath(currentPlugin.getJarPath())
                 .state(PluginState.CREATED)
                 .build();

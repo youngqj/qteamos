@@ -1,6 +1,7 @@
 pluginId: "helloworld-plugin"
 name: "HelloWorld 插件"
 version: "1.0.0"
+api: "1.0.0"
 mainClass: "com.xiaoqu.qteamos.plugin.helloworld.HelloWorldPlugin"
 author: "yangqijun"
 description: "简单的HelloWorld插件，用于测试和验证插件框架"
@@ -73,7 +74,7 @@ config:
 
 # 健康检查
 healthCheck:
-  url: "/health/check"
+  url: "/health"
   timeout: 3000
 
 # 升级配置

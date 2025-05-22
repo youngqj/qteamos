@@ -64,7 +64,7 @@ public class PluginDTO {
     private String type;
     
     /**
-     * 插件信任级别（trusted/official/community等）
+     * 插件信任级别（trust/untrusted）
      */
     private String trust;
     

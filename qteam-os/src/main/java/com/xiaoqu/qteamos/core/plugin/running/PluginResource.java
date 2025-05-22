@@ -1,6 +1,5 @@
 package com.xiaoqu.qteamos.core.plugin.running;
 
-import lombok.Builder;
 import lombok.Data;
 
 /**
@@ -11,7 +10,6 @@ import lombok.Data;
  * @version 1.0.0
  */
 @Data
-@Builder
 public class PluginResource {
     
     /**
@@ -36,7 +34,6 @@ public class PluginResource {
      * 资源是否必须存在
      * 默认为true
      */
-    @Builder.Default
     private boolean required = true;
     
     /**
@@ -65,5 +62,46 @@ public class PluginResource {
     public boolean isValid() {
         return path != null && !path.isEmpty() && 
                (isFile() || isDirectory());
+    }
+    
+    /**
+     * 创建一个PluginResource构建器
+     *
+     * @return PluginResourceBuilder实例
+     */
+    public static PluginResourceBuilder builder() {
+        return new PluginResourceBuilder();
+    }
+    
+    /**
+     * 插件资源构建器
+     * 用于构建PluginResource实例
+     */
+    public static class PluginResourceBuilder {
+        private final PluginResource resource = new PluginResource();
+        
+        public PluginResourceBuilder path(String path) {
+            resource.path = path;
+            return this;
+        }
+        
+        public PluginResourceBuilder type(String type) {
+            resource.type = type;
+            return this;
+        }
+        
+        public PluginResourceBuilder description(String description) {
+            resource.description = description;
+            return this;
+        }
+        
+        public PluginResourceBuilder required(boolean required) {
+            resource.required = required;
+            return this;
+        }
+        
+        public PluginResource build() {
+            return resource;
+        }
     }
 } 

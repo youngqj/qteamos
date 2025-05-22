@@ -10,73 +10,178 @@
  */
 package com.xiaoqu.qteamos.core.plugin.event;
 
+import java.util.UUID;
+import java.io.Serializable;
+
 /**
- * 事件接口
- * 所有插件系统中的事件都应实现此接口
+ * 事件基类
+ * 所有插件系统事件的基础类
  *
  * @author yangqijun
- * @date 2024-07-03
+ * @date 2024-07-15
+ * @since 1.0.0
  */
-public interface Event {
+public class Event implements Serializable {
+    private static final long serialVersionUID = 1L;
+    
+    private final String id;
+    private final String topic;
+    private final String type;
+    private final long timestamp;
+    private final Object source;
+    private Object data;
+    private boolean cancelled;
+    private final boolean cancellable;
     
     /**
-     * 获取事件主题
-     * 主题用于对事件进行分类和过滤
+     * 创建事件
      *
-     * @return 事件主题
+     * @param topic 事件主题
+     * @param type 事件类型
      */
-    String getTopic();
-    
-    /**
-     * 获取事件类型
-     * 用于更细粒度的事件分类
-     *
-     * @return 事件类型
-     */
-    String getType();
-    
-    /**
-     * 获取事件来源
-     * 标识事件的产生者，例如插件ID
-     *
-     * @return 事件来源
-     */
-    String getSource();
-    
-    /**
-     * 获取事件发生时间戳
-     *
-     * @return 时间戳（毫秒）
-     */
-    long getTimestamp();
-    
-    /**
-     * 事件是否可取消
-     * 如果返回true，事件处理器可以取消事件的传播
-     *
-     * @return 是否可取消
-     */
-    default boolean isCancellable() {
-        return false;
+    public Event(String topic, String type) {
+        this(topic, type, null);
     }
     
     /**
-     * 事件是否已取消
-     * 对于可取消的事件，返回其当前是否已被取消
+     * 创建事件
+     *
+     * @param topic 事件主题
+     * @param type 事件类型
+     * @param data 事件数据
+     */
+    public Event(String topic, String type, Object data) {
+        this.id = UUID.randomUUID().toString();
+        this.topic = topic;
+        this.type = type;
+        this.timestamp = System.currentTimeMillis();
+        this.source = this;
+        this.data = data;
+        this.cancelled = false;
+        this.cancellable = true;
+    }
+    
+    /**
+     * 获取事件ID
+     *
+     * @return 事件ID
+     */
+    public String getId() {
+        return id;
+    }
+    
+    /**
+     * 获取事件ID (兼容API)
+     *
+     * @return 事件ID
+     */
+    public String getEventId() {
+        return id;
+    }
+    
+    /**
+     * 获取事件主题
+     *
+     * @return 事件主题
+     */
+    public String getTopic() {
+        return topic;
+    }
+    
+    /**
+     * 获取事件类型
+     *
+     * @return 事件类型
+     */
+    public String getType() {
+        return type;
+    }
+    
+    /**
+     * 获取事件时间戳
+     *
+     * @return 事件时间戳
+     */
+    public long getTimestamp() {
+        return timestamp;
+    }
+    
+    /**
+     * 获取事件来源
+     *
+     * @return 事件来源
+     */
+    public Object getSource() {
+        return source;
+    }
+    
+    /**
+     * 获取事件数据
+     *
+     * @return 事件数据
+     */
+    public Object getData() {
+        return data;
+    }
+    
+    /**
+     * 设置事件数据
+     *
+     * @param data 事件数据
+     */
+    public void setData(Object data) {
+        this.data = data;
+    }
+    
+    /**
+     * 是否可取消
+     *
+     * @return 是否可取消
+     */
+    public boolean isCancellable() {
+        return cancellable;
+    }
+    
+    /**
+     * 是否已取消
      *
      * @return 是否已取消
      */
-    default boolean isCancelled() {
-        return false;
+    public boolean isCancelled() {
+        return cancelled;
+    }
+    
+    /**
+     * 是否已取消 (兼容旧代码)
+     *
+     * @return 是否已取消
+     */
+    public boolean isCanceled() {
+        return cancelled;
     }
     
     /**
      * 取消事件
-     * 对于可取消的事件，调用此方法可以阻止事件继续传播
      *
      * @return 是否成功取消
      */
-    default boolean cancel() {
+    public boolean cancel() {
+        if (cancellable) {
+            this.cancelled = true;
+            return true;
+        }
         return false;
+    }
+    
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "{" +
+                "id='" + id + '\'' +
+                ", topic='" + topic + '\'' +
+                ", type='" + type + '\'' +
+                ", timestamp=" + timestamp +
+                ", data=" + data +
+                ", cancelled=" + cancelled +
+                '}';
     }
 } 

@@ -5,10 +5,12 @@ import com.xiaoqu.qteamos.core.plugin.event.EventListener;
 import com.xiaoqu.qteamos.core.plugin.event.PluginEvent;
 import com.xiaoqu.qteamos.core.plugin.event.Event;
 
-
 import com.xiaoqu.qteamos.core.plugin.manager.PluginStateManager.PluginStateChangeEvent;
 import com.xiaoqu.qteamos.core.plugin.running.PluginInfo;
 import com.xiaoqu.qteamos.core.plugin.running.PluginState;
+import com.xiaoqu.qteamos.core.plugin.running.PluginDescriptor;
+import com.xiaoqu.qteamos.core.plugin.running.PluginDependency;
+
 import com.xiaoqu.qteamos.core.plugin.model.entity.SysPluginInfo;
 import com.xiaoqu.qteamos.core.plugin.model.entity.SysPluginStatus;
 import com.xiaoqu.qteamos.core.plugin.model.entity.SysPluginDependency;
@@ -25,6 +27,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.ArrayList;
+import java.nio.file.Path;
+import java.util.Map;
 
 /**
  * 插件状态持久化管理器
@@ -115,7 +122,15 @@ public class PluginStatePersistenceManager {
                 .setTrust(pluginInfo.getDescriptor().getTrust())
                 .setRequiredSystemVersion(pluginInfo.getDescriptor().getRequiredSystemVersion())
                 .setPriority(pluginInfo.getDescriptor().getPriority())
-                .setWebsite(pluginInfo.getJarPath() != null ? pluginInfo.getJarPath().toString() : null);
+                .setWebsite(null); // 网站地址暂时为空
+        
+        // 设置JAR文件路径
+        if (pluginInfo.getJarPath() != null) {
+            log.info("保存插件JAR路径: {}", pluginInfo.getJarPath());
+            entity.setJarPath(pluginInfo.getJarPath().toString());
+        } else {
+            log.warn("插件没有JAR路径信息");
+        }
         
         // 手动设置创建时间和更新时间，防止自动填充失效
         entity.setCreateTime(LocalDateTime.now());
@@ -147,7 +162,8 @@ public class PluginStatePersistenceManager {
                 .setTrust(pluginInfo.getDescriptor().getTrust())
                 .setRequiredSystemVersion(pluginInfo.getDescriptor().getRequiredSystemVersion())
                 .setPriority(pluginInfo.getDescriptor().getPriority())
-                .setWebsite(pluginInfo.getJarPath() != null ? pluginInfo.getJarPath().toString() : null);
+                .setWebsite(null)
+                .setJarPath(pluginInfo.getJarPath() != null ? pluginInfo.getJarPath().toString() : null);
 
         // 使用条件构造器更新
         sysPluginInfoMapper.update(entity, 
@@ -234,29 +250,67 @@ public class PluginStatePersistenceManager {
     @EventListener(topics = "plugin")
     public boolean onPluginEvent(Event event) {
         // 各种插件事件都可能导致状态变化，需要更新数据库
-        // 后续可以优化为只有状态变化时才更新
         try {
             log.debug("接收到插件事件: 类型={}, 来源={}", event.getClass().getName(), event.getSource());
             
-            // 处理PluginStateChangeEvent事件
-            if (event instanceof com.xiaoqu.qteamos.core.plugin.manager.PluginStateManager.PluginStateChangeEvent) {
-                com.xiaoqu.qteamos.core.plugin.manager.PluginStateManager.PluginStateChangeEvent stateEvent = 
-                    (com.xiaoqu.qteamos.core.plugin.manager.PluginStateManager.PluginStateChangeEvent) event;
-                
-                String pluginId = stateEvent.getPluginId();
-                com.xiaoqu.qteamos.core.plugin.running.PluginState newState = stateEvent.getNewState();
-                
-                // 更新插件状态
-                if (newState == com.xiaoqu.qteamos.core.plugin.running.PluginState.STARTED) {
-                    updatePluginState(pluginId, null, newState, LocalDateTime.now(), null);
-                } else if (newState == com.xiaoqu.qteamos.core.plugin.running.PluginState.STOPPED) {
-                    updatePluginState(pluginId, null, newState, null, LocalDateTime.now());
-                } else {
-                    updatePluginState(pluginId, null, newState, null, null);
+            // 使用instanceof检查是否是PluginStateManager.PluginStateChangeEvent类型
+            if (event.getClass().getName().equals("com.xiaoqu.qteamos.core.plugin.manager.PluginStateManager$PluginStateChangeEvent")) {
+                // 使用反射获取pluginId和newState，避免直接类型转换
+                try {
+                    String pluginId = (String) event.getClass().getMethod("getPluginId").invoke(event);
+                    PluginState newState = (PluginState) event.getClass().getMethod("getNewState").invoke(event);
+                    
+                    // 更新插件状态
+                    if (newState == PluginState.STARTED) {
+                        updatePluginState(pluginId, null, newState, LocalDateTime.now(), null);
+                    } else if (newState == PluginState.STOPPED) {
+                        updatePluginState(pluginId, null, newState, null, LocalDateTime.now());
+                    } else {
+                        updatePluginState(pluginId, null, newState, null, null);
+                    }
+                    
+                    log.debug("处理PluginStateManager状态变更事件成功: pluginId={}, newState={}", pluginId, newState);
+                    return true;
+                } catch (Exception e) {
+                    log.error("处理PluginStateManager状态变更事件失败", e);
                 }
-                
-                log.debug("处理状态变更事件成功: pluginId={}, newState={}", pluginId, newState);
-                return true;
+            }
+            
+            // 使用instanceof检查是否是PluginStateChangeEvent类型(从DefaultPluginStateTracker)
+            if (event.getClass().getName().equals("com.xiaoqu.qteamos.core.plugin.event.plugins.PluginStateChangeEvent")) {
+                try {
+                    // 使用反射获取pluginId、version和newState，避免直接类型转换
+                    String pluginId = (String) event.getClass().getMethod("getPluginId").invoke(event);
+                    String version = (String) event.getClass().getMethod("getVersion").invoke(event);
+                    String newStateStr = (String) event.getClass().getMethod("getNewState").invoke(event);
+                    
+                    // 将字符串状态转换为枚举
+                    PluginState newState = null;
+                    try {
+                        if (newStateStr != null && !newStateStr.isEmpty()) {
+                            newState = PluginState.valueOf(newStateStr);
+                        }
+                    } catch (IllegalArgumentException e) {
+                        log.warn("无效的状态值: {}", newStateStr);
+                    }
+                    
+                    if (newState != null) {
+                        // 更新插件状态
+                        if (newState == PluginState.STARTED) {
+                            updatePluginState(pluginId, version, newState, LocalDateTime.now(), null);
+                        } else if (newState == PluginState.STOPPED) {
+                            updatePluginState(pluginId, version, newState, null, LocalDateTime.now());
+                        } else {
+                            updatePluginState(pluginId, version, newState, null, null);
+                        }
+                        
+                        log.debug("处理PluginStateChangeEvent状态变更事件成功: pluginId={}, version={}, newState={}", 
+                                 pluginId, version, newState);
+                    }
+                    return true;
+                } catch (Exception e) {
+                    log.error("处理PluginStateChangeEvent事件失败", e);
+                }
             }
             
             // 处理普通的PluginEvent事件
@@ -313,9 +367,14 @@ public class PluginStatePersistenceManager {
      */
     @Deprecated
     @EventListener(topics = "plugin", types = "state_change")
-    public boolean onPluginStateChangeEvent(com.xiaoqu.qteamos.core.plugin.manager.PluginStateManager.PluginStateChangeEvent stateEvent) {
-        log.debug("已废弃的方法被调用，事件将转发到onPluginEvent处理");
-        return onPluginEvent(stateEvent);
+    public boolean onPluginStateChangeEvent(Event stateEvent) {
+        try {
+            log.debug("已废弃的方法被调用: onPluginStateChangeEvent，事件类型: {}", stateEvent.getClass().getName());
+            return onPluginEvent(stateEvent);
+        } catch (Exception e) {
+            log.error("转发事件异常: 事件类型={}", stateEvent.getClass().getName(), e);
+            return true; // 继续传播事件
+        }
     }
     
     /**
@@ -413,5 +472,175 @@ public class PluginStatePersistenceManager {
             log.error("删除插件记录失败: " + pluginId + " " + version, e);
             throw new RuntimeException("删除插件记录失败", e);
         }
+    }
+
+    /**
+     * 获取插件信息
+     * 
+     * @param pluginId 插件ID
+     * @return 插件信息
+     */
+    public Optional<PluginInfo> getPluginInfo(String pluginId) {
+        // Implementation needed
+        throw new UnsupportedOperationException("Method not implemented");
+    }
+
+    /**
+     * 删除插件信息
+     * 
+     * @param pluginId 插件ID
+     */
+    public void deletePluginInfo(String pluginId) {
+        // Implementation needed
+        throw new UnsupportedOperationException("Method not implemented");
+    }
+
+    /**
+     * 获取所有已注册的插件信息
+     * 
+     * @return 所有插件信息集合
+     */
+    public Collection<PluginInfo> getAllPlugins() {
+        try {
+            log.info("开始从数据库获取所有已注册插件信息");
+            
+            // 使用联合查询获取所有插件信息和状态
+            List<Map<String, Object>> pluginDataList = sysPluginInfoMapper.selectPluginsWithStatus();
+            
+            if (pluginDataList.isEmpty()) {
+                log.info("数据库中没有已注册的插件信息");
+                return new ArrayList<>();
+            }
+            
+            log.info("从数据库获取到{}个插件信息", pluginDataList.size());
+            List<PluginInfo> result = new ArrayList<>();
+            
+            // 遍历每个插件信息，构建完整的PluginInfo对象
+            for (Map<String, Object> pluginData : pluginDataList) {
+                try {
+                    // 从联合查询结果中提取插件基本信息
+                    SysPluginInfo sysPluginInfo = new SysPluginInfo();
+                    sysPluginInfo.setId((Long) pluginData.get("id"));
+                    sysPluginInfo.setPluginId((String) pluginData.get("plugin_id"));
+                    sysPluginInfo.setName((String) pluginData.get("name"));
+                    sysPluginInfo.setVersion((String) pluginData.get("version"));
+                    sysPluginInfo.setDescription((String) pluginData.get("description"));
+                    sysPluginInfo.setAuthor((String) pluginData.get("author"));
+                    sysPluginInfo.setMainClass((String) pluginData.get("main_class"));
+                    sysPluginInfo.setType((String) pluginData.get("type"));
+                    sysPluginInfo.setTrust((String) pluginData.get("trust"));
+                    sysPluginInfo.setRequiredSystemVersion((String) pluginData.get("required_system_version"));
+                    sysPluginInfo.setPriority((Integer) pluginData.get("priority"));
+                    sysPluginInfo.setProvider((String) pluginData.get("provider"));
+                    sysPluginInfo.setLicense((String) pluginData.get("license"));
+                    sysPluginInfo.setCategory((String) pluginData.get("category"));
+                    sysPluginInfo.setWebsite((String) pluginData.get("website"));
+                    sysPluginInfo.setJarPath((String) pluginData.get("jar_file"));
+                    sysPluginInfo.setHaveDependency((Integer) pluginData.get("have_dependency"));
+                    
+                    // 创建插件描述符
+                    PluginDescriptor descriptor = createPluginDescriptor(sysPluginInfo);
+                    
+                    // 创建PluginInfo对象
+                    PluginInfo pluginInfo = PluginInfo.builder()
+                        .descriptor(descriptor)
+                        .build();
+                    
+                    // 从联合查询结果中提取插件状态信息
+                    if (pluginData.get("status") != null) {
+                        try {
+                            pluginInfo.setState(PluginState.valueOf((String) pluginData.get("status")));
+                        } catch (IllegalArgumentException e) {
+                            log.warn("未知的插件状态: {}, 设置为CREATED", pluginData.get("status"));
+                            pluginInfo.setState(PluginState.CREATED);
+                        }
+                    }
+                    
+                    // 设置插件启用状态
+                    Boolean enabled = (Boolean) pluginData.get("enabled");
+                    pluginInfo.setEnabled(enabled != null ? enabled : false);
+                    
+                    // 设置错误信息
+                    String errorMessage = (String) pluginData.get("error_message");
+                    if (errorMessage != null) {
+                        pluginInfo.setErrorMessage(errorMessage);
+                    }
+                    
+                    // 设置JAR路径
+                    String jarPath = (String) pluginData.get("jar_file");
+                    if (jarPath != null && !jarPath.isEmpty()) {
+                        log.info("从数据库读取到插件[{}]的JAR路径: {}", pluginInfo.getDescriptor().getPluginId(), jarPath);
+                        pluginInfo.setJarPath(Path.of(jarPath));
+                    } else if (sysPluginInfo.getJarPath() != null && !sysPluginInfo.getJarPath().isEmpty()) {
+                        log.info("从实体类读取到插件[{}]的JAR路径: {}", pluginInfo.getDescriptor().getPluginId(), sysPluginInfo.getJarPath());
+                        pluginInfo.setJarPath(Path.of(sysPluginInfo.getJarPath()));
+                    } else {
+                        log.warn("插件[{}]的JAR路径为空", pluginInfo.getDescriptor().getPluginId());
+                    }
+                    
+                    result.add(pluginInfo);
+                    
+                } catch (Exception e) {
+                    log.error("处理插件信息时发生错误: {}", pluginData.get("plugin_id"), e);
+                }
+            }
+            
+            log.info("成功加载{}个插件信息", result.size());
+            return result;
+            
+        } catch (Exception e) {
+            log.error("获取插件信息时发生错误", e);
+            return new ArrayList<>();
+        }
+    }
+    
+    /**
+     * 创建插件描述符
+     */
+    private PluginDescriptor createPluginDescriptor(SysPluginInfo sysPluginInfo) {
+        // 构建插件描述符
+        PluginDescriptor descriptor = new PluginDescriptor();
+            
+        descriptor.setPluginId(sysPluginInfo.getPluginId());
+        descriptor.setName(sysPluginInfo.getName());
+        descriptor.setVersion(sysPluginInfo.getVersion());
+        descriptor.setDescription(sysPluginInfo.getDescription());
+        descriptor.setAuthor(sysPluginInfo.getAuthor());
+        descriptor.setMainClass(sysPluginInfo.getMainClass());
+        descriptor.setType(sysPluginInfo.getType());
+        
+        // 安全地设置trust值
+        if (sysPluginInfo.getTrust() != null) {
+            descriptor.setTrust(sysPluginInfo.getTrust());
+        } else {
+            descriptor.setTrust(null);
+        }
+        
+        descriptor.setRequiredSystemVersion(sysPluginInfo.getRequiredSystemVersion());
+        descriptor.setPriority(sysPluginInfo.getPriority());
+        
+        // 查询插件依赖
+        List<SysPluginDependency> dependencies = sysPluginDependencyMapper.selectList(
+                new LambdaQueryWrapper<SysPluginDependency>()
+                        .eq(SysPluginDependency::getPluginId, sysPluginInfo.getPluginId())
+                        .eq(SysPluginDependency::getPluginVersion, sysPluginInfo.getVersion()));
+        
+        // 添加依赖到描述符
+        if (!dependencies.isEmpty()) {
+            List<PluginDependency> pluginDependencies = 
+                    new ArrayList<>();
+            
+            for (SysPluginDependency dependency : dependencies) {
+                PluginDependency pluginDependency = new PluginDependency();
+                pluginDependency.setPluginId(dependency.getDependencyPluginId());
+                pluginDependency.setVersionRequirement(dependency.getVersionRequirement());
+                pluginDependency.setOptional(dependency.getOptional());
+                pluginDependencies.add(pluginDependency);
+            }
+            
+            descriptor.setDependencies(pluginDependencies);
+        }
+        
+        return descriptor;
     }
 } 
