@@ -30,6 +30,10 @@ qteamos:
   # 系统版本
   version: 1.0.0
   
+  # 服务器URL
+  server:
+    url: http://localhost:${server.port}
+  
   # 系统启动配置
   system:
     startup:

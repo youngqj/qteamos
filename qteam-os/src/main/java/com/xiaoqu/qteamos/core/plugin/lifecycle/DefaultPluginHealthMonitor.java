@@ -102,7 +102,7 @@ public class DefaultPluginHealthMonitor implements PluginHealthMonitor {
     /**
      * API服务器URL
      */
-    @Value("${server.url:http://localhost:8080}")
+    @Value("${qteamos.server.url:http://localhost:8080}")
     private String serverBaseUrl;
 
     /**

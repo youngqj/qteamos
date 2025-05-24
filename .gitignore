@@ -170,3 +170,42 @@ fabric.properties
 # Android studio 3.1+ serialized cache file
 .idea/caches/build_file_checksums.ser
 
+# QTeam项目特定忽略规则
+# 插件目录内容（插件jar文件本身不提交到Git）
+plugins/*.jar
+plugins-dev/*.jar
+plugins-temp/*.jar
+plugins-temp-dev/*.jar
+plugin-demos/*.jar
+
+# 插件数据和缓存
+plugin-data/cache/
+plugin-data/temp/
+*.plugin.tmp
+
+# 项目分析和调试文件
+analysis_results/
+debug_output/
+performance_results/
+
+# 临时文档和笔记
+每日进展*.txt
+临时笔记*.md
+debug-*.md
+temp-*.md
+
+# 备份文件
+*.backup
+*.bak
+*_backup/
+
+# 热部署临时文件
+hotswap/
+.hotswap/
+
+# 注意：插件目录结构本身需要保留
+# plugins/          - 生产环境插件目录（保留目录结构）
+# plugins-dev/      - 测试环境插件目录（保留目录结构）  
+# plugins-temp/     - 生产环境临时目录（保留目录结构）
+# plugins-temp-dev/ - 测试环境临时目录（保留目录结构）
+

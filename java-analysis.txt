@@ -1,0 +1,127 @@
+🧹 QTeam Java代码清理工具
+专门清理重构过程中产生的冗余Java类文件
+
+📊 第一步：分析已弃用的Java类
+发现以下已标记为@Deprecated的类：
+  - ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/PluginSystem.java (8.0K,        6 个引用)
+  - ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/running/PluginInfo.java ( 12K,       46 个引用)
+  - ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/coordinator/PluginSystemCoordinator.java ( 40K,        2 个引用)
+  - ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/manager/PluginLifecycleManager.java ( 16K,        9 个引用)
+  - ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/manager/persistence/PluginStatePersistenceManager.java ( 32K,        1 个引用)
+  - ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/manager/PluginRolloutManager.java ( 12K,        4 个引用)
+
+📊 第二步：分析可能的重复/冗余类
+扫描可能冗余的文件模式...
+
+🔍 可疑的重复文件：
+  🚨 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/databases/core/DatabaseService.java
+     ↳ 相似: ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/databases/core/DefaultDatabaseService.java
+
+  🚨 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/databases/DatabaseService.java
+     ↳ 相似: ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/databases/core/DatabaseService.java
+     ↳ 相似: ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/databases/core/DefaultDatabaseService.java
+     ↳ 相似: ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/databases/example/DatabaseServiceExample.java
+     ↳ 相似: ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/databases/DatabaseServiceConnector.java
+
+  🚨 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/cache/CacheService.java
+     ↳ 相似: ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/cache/impl/RedisCacheService.java
+     ↳ 相似: ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/cache/impl/FileCacheService.java
+     ↳ 相似: ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/cache/impl/CaffeineCacheService.java
+     ↳ 相似: ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/cache/api/CacheService.java
+     ↳ 相似: ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/cache/DefaultCacheService.java
+
+  🚨 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/security/SecurityService.java
+     ↳ 相似: ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/security/DefaultSecurityService.java
+
+  🚨 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/manager/PluginReleaseManager.java
+     ↳ 相似: ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/manager/PluginReleaseManagerImpl.java
+
+  🚨 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/manager/PluginReleaseManagerImpl.java
+     ↳ 相似: ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/manager/PluginReleaseManager.java
+
+  🚨 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/service/ServiceLocator.java
+     ↳ 相似: ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/service/DefaultServiceLocator.java
+
+  🚨 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/service/SysPluginStateHistoryService.java
+     ↳ 相似: ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/service/impl/SysPluginStateHistoryServiceImpl.java
+
+  🚨 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/service/PluginDeploymentHistoryServiceImpl.java
+     ↳ 相似: ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/service/PluginDeploymentHistoryService.java
+
+  🚨 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/service/PluginDeploymentHistoryService.java
+     ↳ 相似: ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/service/PluginDeploymentHistoryServiceImpl.java
+
+  🚨 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/service/SysPluginHealthHistoryService.java
+     ↳ 相似: ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/service/impl/SysPluginHealthHistoryServiceImpl.java
+
+  🚨 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/service/ConfigServiceProvider.java
+     ↳ 相似: ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/service/DefaultConfigServiceProvider.java
+
+  🚨 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/gateway/GatewayService.java
+     ↳ 相似: ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/gateway/DefaultGatewayService.java
+     ↳ 相似: ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/gateway/service/impl/GatewayServiceImpl.java
+     ↳ 相似: ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/gateway/service/GatewayService.java
+
+  🚨 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/gateway/service/GatewayService.java
+     ↳ 相似: ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/gateway/service/impl/GatewayServiceImpl.java
+
+📊 第三步：分析测试控制器和临时类
+发现可能的测试控制器（应该在test目录）：
+  - ./qteam-os/src/main/java/com/xiaoqu/qteamos/app/controller/PluginTestController.java (4.0K)
+  - ./qteam-os/src/main/java/com/xiaoqu/qteamos/app/controller/NoSecurityTestController.java (4.0K)
+
+📊 第四步：分析大型类文件（可能需要拆分）
+超过1000行的Java类：
+  🔥 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/coordinator/PluginSystemCoordinator.java (    1035 行,  40K)
+  🔥 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/web/PluginRequestMappingHandlerMapping.java (    1378 行,  64K)
+  🔥 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/lifecycle/DefaultPluginHealthMonitor.java (    1050 行,  40K)
+  🔥 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/loader/DynamicClassLoader.java (    1167 行,  40K)
+
+超过500行的Java类：
+  ⚠️  ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/databases/core/DefaultDatabaseService.java (     553 行,  20K)
+  ⚠️  ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/cache/impl/FileCacheService.java (     703 行,  20K)
+  ⚠️  ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/cache/impl/CaffeineCacheService.java (     673 行,  20K)
+  ⚠️  ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/cache/DefaultCacheService.java (     501 行,  16K)
+  ⚠️  ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/lifecycle/PluginLifecycleCoordinator.java (     792 行,  32K)
+  ⚠️  ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/lifecycle/DefaultPluginLoader.java (     884 行,  40K)
+  ⚠️  ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/lifecycle/DefaultPluginInitializer.java (     618 行,  24K)
+  ⚠️  ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/manager/EnhancedDependencyResolver.java (     654 行,  24K)
+  ⚠️  ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/manager/PluginHotDeployService.java (     844 行,  32K)
+  ⚠️  ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/manager/persistence/PluginStatePersistenceManager.java (     645 行,  32K)
+  ⚠️  ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/manager/EnhancedPluginVersionManager.java (     548 行,  20K)
+  ⚠️  ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/service/PluginPersistenceService.java (     521 行,  20K)
+  ⚠️  ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/installer/DefaultPluginInstaller.java (     799 行,  32K)
+  ⚠️  ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/event/DefaultPluginEventDispatcher.java (     713 行,  28K)
+  ⚠️  ./qteam-common/src/main/java/com/xiaoqu/qteamos/common/utils/VersionUtils.java (     725 行,  28K)
+
+📋 清理建议报告
+=================
+
+🗑️  **可以考虑删除的文件**：
+
+
+  📝 需要移动到test目录的文件：
+  📦 ./qteam-os/src/main/java/com/xiaoqu/qteamos/app/controller/PluginTestController.java (应移动到对应的test目录)
+  📦 ./qteam-os/src/main/java/com/xiaoqu/qteamos/app/controller/NoSecurityTestController.java (应移动到对应的test目录)
+
+⚠️  **需要手动检查的文件**：
+
+  🔍 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/PluginSystem.java (已弃用但仍有        6 个引用，需要先迁移引用)
+  🔍 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/running/PluginInfo.java (已弃用但仍有       46 个引用，需要先迁移引用)
+  🔍 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/coordinator/PluginSystemCoordinator.java (已弃用但仍有        2 个引用，需要先迁移引用)
+  🔍 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/manager/PluginLifecycleManager.java (已弃用但仍有        9 个引用，需要先迁移引用)
+  🔍 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/manager/persistence/PluginStatePersistenceManager.java (已弃用但仍有        1 个引用，需要先迁移引用)
+  🔍 ./qteam-os/src/main/java/com/xiaoqu/qteamos/core/plugin/manager/PluginRolloutManager.java (已弃用但仍有        4 个引用，需要先迁移引用)
+
+🎯 **执行清理操作**
+
+1. 运行交互式清理：
+   ./java-cleanup.sh --interactive
+
+2. 仅删除安全的文件：
+   ./java-cleanup.sh --safe-delete
+
+3. 生成详细报告：
+   ./java-cleanup.sh --report > java-cleanup-report.txt
+
+💡 提示：运行 'mvn clean compile' 验证清理后代码能否正常编译
