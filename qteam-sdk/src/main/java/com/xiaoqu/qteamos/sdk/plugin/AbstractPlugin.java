@@ -185,74 +185,40 @@ public abstract class AbstractPlugin implements Plugin {
     }
     
     /**
-     * 初始化数据库
-     * 自动检测并执行db/init.sql文件
+     * 获取插件数据目录
+     * 
+     * @return 数据目录路径
      */
-    protected void initDatabaseIfNeeded() {
-        try {
-            if (context != null) {
-                // 假设在插件数据目录中有一个db子目录
-                File sqlDir = new File(context.getDataFolderPath(), "db");
-                if (sqlDir.exists() && sqlDir.isDirectory()) {
-                    File initSql = new File(sqlDir, "init.sql");
-                    if (initSql.exists() && initSql.isFile()) {
-                        log.info("检测到数据库初始化脚本，执行: {}", initSql.getName());
-                        boolean success = executeSqlFile(initSql);
-                        if (success) {
-                            log.info("数据库初始化成功");
-                        } else {
-                            log.error("数据库初始化失败");
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.error("初始化数据库时发生异常", e);
+    protected String getDataFolderPath() {
+        if (context != null) {
+            // 使用插件ID作为数据目录名
+            return "data/" + context.getPluginId();
         }
+        return "data/unknown";
     }
     
     /**
-     * 执行SQL文件
+     * 初始化数据库（如果需要）
+     * 已废弃：请直接使用@Autowired注入Mapper
+     * 
+     * @deprecated 请使用标准Spring Boot方式：@Autowired注入Mapper
+     */
+    @Deprecated
+    protected void initDatabaseIfNeeded() {
+        log.warn("initDatabaseIfNeeded方法已废弃，请使用标准Spring Boot方式：@Autowired注入Mapper");
+    }
+    
+    /**
+     * 执行SQL脚本（已废弃）
+     * 请使用标准Spring Boot方式管理数据库
      * 
      * @param sqlFile SQL文件
      * @return 是否成功
+     * @deprecated 请使用标准Spring Boot方式管理数据库
      */
+    @Deprecated
     protected boolean executeSqlFile(File sqlFile) {
-        Connection connection = null;
-        
-        try {
-            if (context != null && sqlFile.exists()) {
-                String sql = new String(Files.readAllBytes(sqlFile.toPath()));
-                
-                try {
-                    connection = context.getDataSourceService().getConnection();
-                    try (Statement statement = connection.createStatement()) {
-                        // 分割SQL语句
-                        String[] sqlStatements = sql.split(";");
-                        for (String sqlStatement : sqlStatements) {
-                            String trimmedSql = sqlStatement.trim();
-                            if (!trimmedSql.isEmpty()) {
-                                statement.execute(trimmedSql);
-                            }
-                        }
-                        return true;
-                    }
-                } catch (SQLException e) {
-                    log.error("执行SQL语句失败", e);
-                }
-            }
-        } catch (Exception e) {
-            log.error("执行SQL文件失败: " + sqlFile.getAbsolutePath(), e);
-        } finally {
-            // 确保连接关闭
-            if (connection != null) {
-                try {
-                    connection.close();
-                } catch (SQLException e) {
-                    log.error("关闭数据库连接失败", e);
-                }
-            }
-        }
+        log.warn("executeSqlFile方法已废弃，请使用标准Spring Boot方式管理数据库");
         return false;
     }
 } 

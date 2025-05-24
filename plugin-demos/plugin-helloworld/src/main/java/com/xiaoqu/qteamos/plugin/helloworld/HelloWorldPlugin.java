@@ -102,8 +102,8 @@ public class HelloWorldPlugin extends AbstractPlugin implements Plugin {
         System.out.println("初始化HelloWorld插件");
         
         // 读取配置信息
-        this.greeting = context.getConfig("greeting", "Hello, QTeamOS!");
-        this.debugMode = Boolean.parseBoolean(context.getConfig("enableDebug", "false"));
+        this.greeting = context.getPluginConfig("greeting", "Hello, QTeamOS!");
+        this.debugMode = Boolean.parseBoolean(context.getPluginConfig("enableDebug", "false"));
         
         // 打印成功信息
         System.out.println("HelloWorld插件初始化成功，准备运行");

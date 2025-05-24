@@ -211,11 +211,15 @@ public class SimplifiedPluginContext {
     }
     
     /**
-     * 获取数据库连接
+     * 获取数据库连接（已废弃）
+     * 插件应该使用标准Spring Boot方式：@Autowired注入Mapper
      *
      * @return 数据库连接
+     * @deprecated 请使用标准Spring Boot方式：@Autowired注入Mapper
      */
+    @Deprecated
     public Object getConnection() {
+        log.warn("getConnection方法已废弃，请使用标准Spring Boot方式：@Autowired注入Mapper");
         try {
             Object dataSourceService = originalContext.getService(
                     Class.forName("com.xiaoqu.qteamos.core.api.datasource.DataSourceService"));

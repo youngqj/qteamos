@@ -151,15 +151,31 @@ configService.save();
 
 ```java
 // 获取数据库服务
-DataSourceService dataSourceService = context.getDataSourceService();
+PluginDatabaseService databaseService = context.getDatabaseService();
 
-// 获取连接
-try (Connection conn = dataSourceService.getConnection()) {
-    // 执行SQL操作
-}
+// 保存实体
+UserEntity user = new UserEntity("张三", "zhangsan@example.com", "开发部");
+boolean success = databaseService.save(user);
+
+// 查询实体
+UserEntity found = databaseService.getById(UserEntity.class, 1L);
+
+// 条件查询
+Map<String, Object> conditions = new HashMap<>();
+conditions.put("department", "开发部");
+List<UserEntity> users = databaseService.list(UserEntity.class, conditions);
+
+// 分页查询
+PluginDatabaseService.PageResult<UserEntity> pageResult = 
+    databaseService.page(UserEntity.class, 1, 10, conditions);
 
 // 执行SQL脚本
-dataSourceService.executeSql(getId(), "db/init.sql");
+boolean success = databaseService.executeSqlScript("db/init.sql");
+
+// 多数据源操作
+List<UserEntity> otherUsers = databaseService.executeWithDataSource("dataSource2", () -> {
+    return databaseService.list(UserEntity.class);
+});
 ```
 
 ### 缓存服务

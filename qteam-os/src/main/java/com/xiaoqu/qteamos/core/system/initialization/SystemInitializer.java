@@ -21,7 +21,7 @@
 package com.xiaoqu.qteamos.core.system.initialization;
 
 import com.xiaoqu.qteamos.core.cache.CacheService;
-import com.xiaoqu.qteamos.core.databases.DatabaseService;
+import com.xiaoqu.qteamos.core.databases.core.DatabaseService;
 import com.xiaoqu.qteamos.core.gateway.GatewayService;
 import com.xiaoqu.qteamos.core.plugin.coordinator.PluginSystemCoordinator;
 import com.xiaoqu.qteamos.core.plugin.event.EventBus;
